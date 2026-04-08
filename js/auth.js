@@ -76,21 +76,21 @@ export async function setupLoginPage() {
   }
 
   if (!isFirebaseConfigured) {
-    statusEl.textContent = "Firebase-Konfiguration fehlt noch. Bitte zuerst js/firebase.js prüfen.";
+    statusEl.textContent = "Firebase тохиргоо дутуу байна. js/firebase.js файлаа шалгана уу.";
     statusEl.className = "text-sm text-amber-700 text-center";
     if (setupChecklist) {
       setupChecklist.open = true;
     }
   } else if (setupChecklist) {
     setupChecklist.classList.add("hidden");
-    statusEl.textContent = "Setup erkannt. Anmeldung ist bereit.";
+    statusEl.textContent = "Тохиргоо бэлэн байна. Нэвтрэх боломжтой.";
     statusEl.className = "text-sm text-emerald-700 text-center";
   }
 
   loginBtn.addEventListener("click", async () => {
     try {
       loginBtn.disabled = true;
-      loginBtn.textContent = "Anmeldung läuft...";
+      loginBtn.textContent = "Нэвтэрч байна...";
       const credential = await signInWithPopup(auth, googleProvider);
       await syncUserDocument(credential.user);
       try {
@@ -101,10 +101,10 @@ export async function setupLoginPage() {
       window.location.href = "./dashboard.html";
     } catch (error) {
       console.error("Google sign in failed:", error);
-      statusEl.textContent = error.message || "Google-Anmeldung fehlgeschlagen.";
+      statusEl.textContent = error.message || "Google нэвтрэлт амжилтгүй боллоо.";
       statusEl.className = "text-sm text-rose-700 text-center";
       loginBtn.disabled = false;
-      loginBtn.textContent = "Mit Google anmelden";
+      loginBtn.textContent = "Google-ээр нэвтрэх";
     }
   });
 

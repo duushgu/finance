@@ -20,17 +20,17 @@ function toNumber(value) {
 export const APP_CURRENCY_CODE = "MNT";
 export const APP_CURRENCY_SYMBOL = "₮";
 export const STARTER_CATEGORIES = [
-  { key: "misc", name: "Sonstiges", type: "expense" },
-  { key: "housing", name: "Miete/Wohnen", type: "expense" },
-  { key: "utilities", name: "Strom/Internet/Versicherung", type: "expense" },
-  { key: "food", name: "Lebensmittel", type: "expense" },
-  { key: "kids", name: "Kinder", type: "expense" },
-  { key: "transport", name: "Sprit/Transport", type: "expense" },
-  { key: "work", name: "Arbeit/Werkzeug", type: "expense" },
-  { key: "health", name: "Gesundheit", type: "expense" },
-  { key: "wedding", name: "Hochzeit", type: "expense" },
-  { key: "savings", name: "Notgroschen", type: "expense" },
-  { key: "salary", name: "Lohn", type: "income" }
+  { key: "misc", name: "Бусад", type: "expense" },
+  { key: "housing", name: "Түрээс/Орон сууц", type: "expense" },
+  { key: "utilities", name: "Цахилгаан/Интернэт/Даатгал", type: "expense" },
+  { key: "food", name: "Хүнс", type: "expense" },
+  { key: "kids", name: "Хүүхэд", type: "expense" },
+  { key: "transport", name: "Тээвэр/Түлш", type: "expense" },
+  { key: "work", name: "Ажил/Багаж", type: "expense" },
+  { key: "health", name: "Эрүүл мэнд", type: "expense" },
+  { key: "wedding", name: "Хурим", type: "expense" },
+  { key: "savings", name: "Хадгаламж", type: "expense" },
+  { key: "salary", name: "Цалин", type: "income" }
 ];
 
 export function getTodayDateString() {
@@ -114,7 +114,38 @@ export async function getCategories(userId) {
 export async function ensureStarterCategories(userId) {
   const existing = await getCategories(userId);
   if (existing.length) {
-    return { categories: existing, seeded: false };
+    const existingById = Object.fromEntries(existing.map((item) => [item.id, item]));
+    const updates = STARTER_CATEGORIES.filter((item) => {
+      const docId = `${userId}_starter_${item.key}`;
+      const existingItem = existingById[docId];
+      if (!existingItem) {
+        return false;
+      }
+
+      return (
+        String(existingItem.name || "") !== String(item.name || "") ||
+        String(existingItem.type || "") !== String(item.type || "") ||
+        existingItem.parent_id !== null
+      );
+    });
+
+    if (!updates.length) {
+      return { categories: existing, seeded: false, migrated: false };
+    }
+
+    await Promise.all(
+      updates.map((item) =>
+        updateDoc(doc(db, "categories", `${userId}_starter_${item.key}`), {
+          name: item.name,
+          type: item.type,
+          parent_id: null,
+          updated_at: serverTimestamp()
+        })
+      )
+    );
+
+    const migratedCategories = await getCategories(userId);
+    return { categories: migratedCategories, seeded: false, migrated: true };
   }
 
   await Promise.all(
@@ -135,7 +166,7 @@ export async function ensureStarterCategories(userId) {
   );
 
   const seededCategories = await getCategories(userId);
-  return { categories: seededCategories, seeded: true };
+  return { categories: seededCategories, seeded: true, migrated: false };
 }
 
 export async function updateCategory(categoryId, payload) {
@@ -287,7 +318,7 @@ export function groupExpensesByCategory(transactions, categories, monthKey = get
   transactions
     .filter((item) => item.type === "expense" && (item.date || "").startsWith(monthKey))
     .forEach((item) => {
-      const categoryName = categoryMap[item.category_id] || "Sonstiges";
+      const categoryName = categoryMap[item.category_id] || "Бусад";
       grouped.set(categoryName, toNumber(grouped.get(categoryName)) + toNumber(item.amount));
     });
 

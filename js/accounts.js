@@ -101,22 +101,22 @@ export async function initAccountsPage() {
     }
 
     toggleDeleteAccountModeBtn.classList.toggle("is-active", isDeleteMode);
-    toggleDeleteAccountModeBtn.textContent = "DEL";
+    toggleDeleteAccountModeBtn.textContent = "УСТ";
 
     if (!isDeleteMode) {
-      toggleDeleteAccountModeBtn.title = "Löschmodus starten";
-      toggleDeleteAccountModeBtn.setAttribute("aria-label", "Löschmodus starten");
+      toggleDeleteAccountModeBtn.title = "Устгах горим эхлүүлэх";
+      toggleDeleteAccountModeBtn.setAttribute("aria-label", "Устгах горим эхлүүлэх");
       return;
     }
 
     if (selectedDeleteAccountId) {
-      toggleDeleteAccountModeBtn.title = "Ausgewählte Zeile löschen";
-      toggleDeleteAccountModeBtn.setAttribute("aria-label", "Ausgewählte Zeile löschen");
+      toggleDeleteAccountModeBtn.title = "Сонгосон мөрийг устгах";
+      toggleDeleteAccountModeBtn.setAttribute("aria-label", "Сонгосон мөрийг устгах");
       return;
     }
 
-    toggleDeleteAccountModeBtn.title = "Löschmodus beenden";
-    toggleDeleteAccountModeBtn.setAttribute("aria-label", "Löschmodus beenden");
+    toggleDeleteAccountModeBtn.title = "Устгах горим дуусгах";
+    toggleDeleteAccountModeBtn.setAttribute("aria-label", "Устгах горим дуусгах");
   }
 
   function setDeleteMode(nextMode) {
@@ -134,7 +134,7 @@ export async function initAccountsPage() {
 
     if (!accountsWithBalance.length) {
       accountsTableBody.innerHTML =
-        '<tr><td colspan="2"><div class="empty-state">Noch kein Konto vorhanden. Bitte zuerst ein Konto anlegen.</div></td></tr>';
+        '<tr><td colspan="2"><div class="empty-state">Данс хараахан алга. Эхлээд данс нэмнэ үү.</div></td></tr>';
       selectedDeleteAccountId = "";
       applyDeleteModeStateToTable();
       return;
@@ -193,7 +193,7 @@ export async function initAccountsPage() {
     if (field === "name") {
       const nextName = currentText.trim();
       if (!nextName) {
-        throw new Error("Kontoname darf nicht leer sein.");
+        throw new Error("Дансны нэр хоосон байж болохгүй.");
       }
 
       await updateAccount(accountId, { name: nextName });
@@ -203,7 +203,7 @@ export async function initAccountsPage() {
     if (field === "current_balance") {
       const targetCurrentBalance = parseCompactAmountInput(currentText);
       if (!Number.isFinite(targetCurrentBalance)) {
-        throw new Error("Ungültiger Kontostand. Beispiel: 25000 oder 25k.");
+        throw new Error("Үлдэгдлийн дүн буруу байна. Жишээ: 25000 эсвэл 25k.");
       }
 
       const netActivity = Number(row.dataset.netActivity || 0);
@@ -273,7 +273,7 @@ export async function initAccountsPage() {
       const changed = await saveCellUpdate(cell);
       if (changed) {
         await renderAccounts();
-        showToast("Konto aktualisiert.");
+        showToast("Данс шинэчлэгдлээ.");
       }
     } catch (error) {
       cell.textContent = cell.dataset.originalValue || "";
@@ -305,13 +305,13 @@ export async function initAccountsPage() {
 
     if (!isDeleteMode) {
       setDeleteMode(true);
-      showToast("Löschmodus aktiv: Zeile antippen, dann DEL drücken.");
+      showToast("Устгах горим идэвхтэй: мөрөө сонгоод УСТ товч дарна уу.");
       return;
     }
 
     if (!selectedDeleteAccountId) {
       setDeleteMode(false);
-      showToast("Löschmodus beendet.");
+      showToast("Устгах горим дууслаа.");
       return;
     }
 
@@ -319,11 +319,11 @@ export async function initAccountsPage() {
     const account = getAccountById(accountId);
     if (!accountId || !account) {
       setDeleteMode(false);
-      showToast("Keine gültige Zeile ausgewählt.");
+      showToast("Зөв мөр сонгогдоогүй байна.");
       return;
     }
 
-    const confirmDelete = window.confirm(`Konto "${account.name}" wirklich löschen?`);
+    const confirmDelete = window.confirm(`"${account.name}" дансыг устгах уу?`);
     if (!confirmDelete) {
       return;
     }
@@ -331,12 +331,12 @@ export async function initAccountsPage() {
     toggleDeleteAccountModeBtn.disabled = true;
     try {
       await deleteAccount(accountId);
-      showToast("Konto gelöscht.");
+      showToast("Данс устгагдлаа.");
       selectedDeleteAccountId = "";
       await renderAccounts();
       setDeleteMode(false);
     } catch (error) {
-      showToast(error.message || "Konto konnte nicht gelöscht werden.");
+      showToast(error.message || "Дансыг устгаж чадсангүй.");
     } finally {
       toggleDeleteAccountModeBtn.disabled = false;
       updateDeleteButtonUi();
@@ -351,7 +351,7 @@ export async function initAccountsPage() {
     const initialBalance = document.getElementById("accountInitialBalance").value;
 
     if (!name) {
-      showToast("Bitte Kontonamen eingeben.");
+      showToast("Дансны нэр оруулна уу.");
       return;
     }
 
@@ -363,7 +363,7 @@ export async function initAccountsPage() {
     accountForm.reset();
     document.getElementById("accountInitialBalance").value = "0";
     closeAccountModal();
-    showToast("Konto gespeichert.");
+    showToast("Данс хадгалагдлаа.");
     await renderAccounts();
   });
 

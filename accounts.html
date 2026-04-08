@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="mn">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Familien-Finanzen | Konten</title>
+    <title>Гэр бүлийн санхүү | Данс</title>
     <meta name="theme-color" content="#0f8f67" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,18 +20,18 @@
       <aside class="hidden lg:flex lg:w-72 xl:w-80 p-5">
         <div class="card w-full p-5 flex flex-col gap-6">
           <header>
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Familien-Kasse</p>
-            <h1 class="font-display text-2xl font-semibold">Familien-Finanzplan</h1>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Гэр бүлийн төсөв</p>
+            <h1 class="font-display text-2xl font-semibold">Гэр бүлийн санхүү</h1>
           </header>
           <nav class="space-y-2">
-            <a class="sidebar-link" href="./dashboard.html">Überblick</a>
-            <a class="sidebar-link active" href="./accounts.html">Konten</a>
-            <a class="sidebar-link" href="./transactions.html">Buchungen</a>
-            <a class="sidebar-link" href="./categories.html">Kategorien</a>
+            <a class="sidebar-link" href="./dashboard.html">Тойм</a>
+            <a class="sidebar-link active" href="./accounts.html">Данс</a>
+            <a class="sidebar-link" href="./transactions.html">Гүйлгээ</a>
+            <a class="sidebar-link" href="./categories.html">Ангилал</a>
           </nav>
           <div class="mt-auto space-y-3">
             <p id="currentUserEmail" class="text-xs text-slate-500 break-all"></p>
-            <button id="logoutBtn" class="btn btn-neutral w-full">Abmelden</button>
+            <button id="logoutBtn" class="btn btn-neutral w-full">Гарах</button>
           </div>
         </div>
       </aside>
@@ -39,15 +39,15 @@
       <main class="flex-1 page-main p-4 lg:p-8 space-y-6">
         <header class="card p-5 flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm text-slate-500">Konten</p>
-            <h2 class="font-display text-2xl font-semibold">Konten verwalten</h2>
+            <p class="text-sm text-slate-500">Данс</p>
+            <h2 class="font-display text-2xl font-semibold">Данс удирдах</h2>
           </div>
         </header>
 
         <section class="card p-5">
           <header class="mb-3">
-            <h3 class="font-display text-lg font-semibold">Kontenübersicht</h3>
-            <p class="text-sm text-slate-500">Kontostände werden automatisch aus Buchungen berechnet.</p>
+            <h3 class="font-display text-lg font-semibold">Дансны жагсаалт</h3>
+            <p class="text-sm text-slate-500">Үлдэгдэл нь гүйлгээнээс автоматаар бодогдоно.</p>
           </header>
           <div class="table-wrap">
             <table class="data-table">
@@ -63,28 +63,28 @@
         </section>
 
         <div class="fab-actions">
-          <button id="toggleDeleteAccountModeBtn" type="button" class="fab-btn fab-btn-danger" aria-label="Löschmodus">
-            DEL
+          <button id="toggleDeleteAccountModeBtn" type="button" class="fab-btn fab-btn-danger" aria-label="Устгах горим">
+            УСТ
           </button>
-          <button id="openAccountModalBtn" type="button" class="fab-btn" aria-label="Konto anlegen">+</button>
+          <button id="openAccountModalBtn" type="button" class="fab-btn" aria-label="Данс нэмэх">+</button>
         </div>
 
         <div id="accountModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
           <div class="app-modal-card">
             <header class="flex items-center justify-between gap-3 mb-4">
-              <h3 id="accountModalTitle" class="font-display text-lg font-semibold">Konto anlegen</h3>
-              <button id="closeAccountModalBtn" type="button" class="modal-close-btn" aria-label="Schließen">×</button>
+              <h3 id="accountModalTitle" class="font-display text-lg font-semibold">Данс нэмэх</h3>
+              <button id="closeAccountModalBtn" type="button" class="modal-close-btn" aria-label="Хаах">×</button>
             </header>
             <form id="accountForm" class="space-y-3">
               <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Name</span>
-                <input class="form-input" id="accountName" required placeholder="Hauptkonto" />
+                <span class="text-sm font-semibold">Нэр</span>
+                <input class="form-input" id="accountName" required placeholder="Үндсэн данс" />
               </label>
               <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Startguthaben</span>
+                <span class="text-sm font-semibold">Эхний үлдэгдэл</span>
                 <input class="form-input" id="accountInitialBalance" type="number" step="0.01" inputmode="decimal" value="0" required />
               </label>
-              <button class="btn btn-primary w-full" type="submit">Konto speichern</button>
+              <button class="btn btn-primary w-full" type="submit">Данс хадгалах</button>
             </form>
           </div>
         </div>
@@ -93,10 +93,10 @@
 
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-emerald-100 bg-white/95 backdrop-blur">
       <div class="max-w-md mx-auto grid grid-cols-4 px-2 py-2 gap-1">
-        <a href="./dashboard.html" class="mobile-link">Start</a>
-        <a href="./transactions.html" class="mobile-link">Buchung</a>
-        <a href="./accounts.html" class="mobile-link active">Konten</a>
-        <a href="./categories.html" class="mobile-link">Kategorien</a>
+        <a href="./dashboard.html" class="mobile-link">Тойм</a>
+        <a href="./transactions.html" class="mobile-link">Гүйлгээ</a>
+        <a href="./accounts.html" class="mobile-link active">Данс</a>
+        <a href="./categories.html" class="mobile-link">Ангилал</a>
       </div>
     </nav>
 

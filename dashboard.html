@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="mn">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Familien-Finanzen | Überblick</title>
+    <title>Гэр бүлийн санхүү | Тойм</title>
     <meta name="theme-color" content="#0f8f67" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,18 +21,18 @@
       <aside class="hidden lg:flex lg:w-72 xl:w-80 p-5">
         <div class="card w-full p-5 flex flex-col gap-6">
           <header>
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Familien-Kasse</p>
-            <h1 class="font-display text-2xl font-semibold">Familien-Finanzplan</h1>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Гэр бүлийн төсөв</p>
+            <h1 class="font-display text-2xl font-semibold">Гэр бүлийн санхүү</h1>
           </header>
           <nav class="space-y-2">
-            <a class="sidebar-link active" href="./dashboard.html">Überblick</a>
-            <a class="sidebar-link" href="./accounts.html">Konten</a>
-            <a class="sidebar-link" href="./transactions.html">Buchungen</a>
-            <a class="sidebar-link" href="./categories.html">Kategorien</a>
+            <a class="sidebar-link active" href="./dashboard.html">Тойм</a>
+            <a class="sidebar-link" href="./accounts.html">Данс</a>
+            <a class="sidebar-link" href="./transactions.html">Гүйлгээ</a>
+            <a class="sidebar-link" href="./categories.html">Ангилал</a>
           </nav>
           <div class="mt-auto space-y-3">
             <p id="currentUserEmail" class="text-xs text-slate-500 break-all"></p>
-            <button id="logoutBtn" class="btn btn-neutral w-full">Abmelden</button>
+            <button id="logoutBtn" class="btn btn-neutral w-full">Гарах</button>
           </div>
         </div>
       </aside>
@@ -40,27 +40,27 @@
       <main class="flex-1 page-main p-4 lg:p-8 space-y-6">
         <header class="card p-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p class="text-sm text-slate-500">Heute wichtig</p>
-            <h2 class="font-display text-2xl font-semibold">Einfacher Familien-Überblick</h2>
+            <p class="text-sm text-slate-500">Өнөөдөр</p>
+            <h2 class="font-display text-2xl font-semibold">Энгийн гэр бүлийн тойм</h2>
           </div>
           <div class="flex flex-wrap gap-2">
-            <a id="quickFoodExpenseBtn" href="./transactions.html?quick=food" class="btn btn-neutral">+ Lebensmittel</a>
-            <a id="quickKidsExpenseBtn" href="./transactions.html?quick=kids" class="btn btn-neutral">+ Kinder</a>
-            <a href="./transactions.html" class="btn btn-primary">+ Buchung</a>
+            <a id="quickFoodExpenseBtn" href="./transactions.html?quick=food" class="btn btn-neutral">+ Хүнс</a>
+            <a id="quickKidsExpenseBtn" href="./transactions.html?quick=kids" class="btn btn-neutral">+ Хүүхэд</a>
+            <a href="./transactions.html" class="btn btn-primary">+ Гүйлгээ</a>
           </div>
         </header>
 
         <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           <article class="card p-4">
-            <p class="card-title">Einnahmen (Monat)</p>
+            <p class="card-title">Орлого (сар)</p>
             <p id="monthIncome" class="stat-value text-emerald-700">0 ₮</p>
           </article>
           <article class="card p-4">
-            <p class="card-title">Ausgaben (Monat)</p>
+            <p class="card-title">Зарлага (сар)</p>
             <p id="monthExpense" class="stat-value text-rose-700">0 ₮</p>
           </article>
           <article class="card p-4">
-            <p class="card-title">Noch übrig (Monat)</p>
+            <p class="card-title">Үлдэгдэл (сар)</p>
             <p id="monthNet" class="stat-value text-slate-900">0 ₮</p>
           </article>
         </section>
@@ -68,19 +68,19 @@
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-5">
           <article class="card p-5">
             <header class="mb-3 flex items-center justify-between">
-              <h3 class="font-display text-lg font-semibold">Kontostände</h3>
-              <a class="text-sm font-semibold text-emerald-700" href="./accounts.html">Bearbeiten</a>
+              <h3 class="font-display text-lg font-semibold">Дансны үлдэгдэл</h3>
+              <a class="text-sm font-semibold text-emerald-700" href="./accounts.html">Засах</a>
             </header>
             <div id="dashboardAccountBalances" class="space-y-2"></div>
           </article>
 
           <article class="card p-5 space-y-3">
             <header>
-              <h3 class="font-display text-lg font-semibold">Budget-Ampel</h3>
-              <p class="text-sm text-slate-500">Klarer Status statt komplizierter Zahlen</p>
+              <h3 class="font-display text-lg font-semibold">Төсвийн төлөв</h3>
+              <p class="text-sm text-slate-500">Олон тоо биш, ойлгомжтой төлөв</p>
             </header>
-            <p id="budgetStatusLabel" class="font-display text-2xl font-semibold text-slate-900">Im Plan</p>
-            <p id="budgetStatusHint" class="text-sm text-slate-600">Ausgaben sind im grünen Bereich.</p>
+            <p id="budgetStatusLabel" class="font-display text-2xl font-semibold text-slate-900">Төлөвлөгөөнд</p>
+            <p id="budgetStatusHint" class="text-sm text-slate-600">Зарлага хэвийн түвшинд байна.</p>
             <div class="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
               <div id="budgetStatusBar" class="h-full rounded-full bg-emerald-500 w-0"></div>
             </div>
@@ -90,8 +90,8 @@
 
         <section class="card p-5">
           <header class="mb-4">
-            <h3 class="font-display text-lg font-semibold">Ausgaben nach Kategorie</h3>
-            <p class="text-sm text-slate-500">Aktueller Monat</p>
+            <h3 class="font-display text-lg font-semibold">Ангиллаар зарлага</h3>
+            <p class="text-sm text-slate-500">Одоогийн сар</p>
           </header>
           <div class="h-72">
             <canvas id="expenseChart"></canvas>
@@ -100,19 +100,19 @@
 
         <section class="card p-5">
           <header class="mb-3 flex items-center justify-between gap-2">
-            <h3 class="font-display text-lg font-semibold">Letzte Buchungen</h3>
-            <a class="text-sm font-semibold text-emerald-700" href="./transactions.html">Alle anzeigen</a>
+            <h3 class="font-display text-lg font-semibold">Сүүлийн гүйлгээ</h3>
+            <a class="text-sm font-semibold text-emerald-700" href="./transactions.html">Бүгдийг харах</a>
           </header>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Datum</th>
-                  <th>Typ</th>
-                  <th>Betrag</th>
-                  <th>Konto</th>
-                  <th>Kategorie</th>
-                  <th>Notiz</th>
+                  <th>Огноо</th>
+                  <th>Төрөл</th>
+                  <th>Дүн</th>
+                  <th>Данс</th>
+                  <th>Ангилал</th>
+                  <th>Тэмдэглэл</th>
                 </tr>
               </thead>
               <tbody id="recentTransactionsBody"></tbody>
@@ -124,10 +124,10 @@
 
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-emerald-100 bg-white/95 backdrop-blur">
       <div class="max-w-md mx-auto grid grid-cols-4 px-2 py-2 gap-1">
-        <a href="./dashboard.html" class="mobile-link active">Start</a>
-        <a href="./transactions.html" class="mobile-link">Buchung</a>
-        <a href="./accounts.html" class="mobile-link">Konten</a>
-        <a href="./categories.html" class="mobile-link">Kategorien</a>
+        <a href="./dashboard.html" class="mobile-link active">Тойм</a>
+        <a href="./transactions.html" class="mobile-link">Гүйлгээ</a>
+        <a href="./accounts.html" class="mobile-link">Данс</a>
+        <a href="./categories.html" class="mobile-link">Ангилал</a>
       </div>
     </nav>
 

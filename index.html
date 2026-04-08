@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="mn">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Familien-Finanzen | Login</title>
+    <title>Гэр бүлийн санхүү | Нэвтрэх</title>
     <meta name="theme-color" content="#0f8f67" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -35,25 +35,25 @@
     <main class="min-h-screen flex items-center justify-center p-4">
       <section class="card w-full max-w-md p-7 space-y-6">
         <header class="space-y-2 text-center">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Familien-Kasse</p>
-          <h1 class="font-display text-3xl font-semibold text-slate-900">Familien-Finanzplan</h1>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Гэр бүлийн төсөв</p>
+          <h1 class="font-display text-3xl font-semibold text-slate-900">Гэр бүлийн санхүү</h1>
           <p class="text-sm text-slate-600">
-            Mit Google anmelden und die Familienfinanzen einfach im Blick behalten.
+            Google-ээр нэвтэрч гэр бүлийн мөнгөө хялбар хөтөлнө.
           </p>
         </header>
 
         <button id="googleLoginBtn" class="btn btn-primary w-full">
-          <span>Mit Google anmelden</span>
+          <span>Google-ээр нэвтрэх</span>
         </button>
 
         <p id="loginStatus" class="text-sm text-slate-600 text-center"></p>
 
         <details id="setupChecklist" class="rounded-xl bg-amber-50 border border-amber-200 p-3">
-          <summary class="cursor-pointer font-semibold text-amber-800">Erst-Einrichtung</summary>
+          <summary class="cursor-pointer font-semibold text-amber-800">Анхны тохиргоо</summary>
           <ul class="mt-2 text-sm text-amber-900 list-disc pl-4 space-y-1">
-            <li>Google-Anmeldung im Firebase-Projekt aktivieren.</li>
-            <li>Firestore-Datenbank anlegen.</li>
-            <li>Firebase-Konfiguration in <code>js/firebase.js</code> eintragen.</li>
+            <li>Firebase төсөл дээр Google нэвтрэлтийг идэвхжүүлнэ.</li>
+            <li>Firestore өгөгдлийн сан үүсгэнэ.</li>
+            <li><code>js/firebase.js</code> дотор Firebase тохиргоог оруулна.</li>
           </ul>
         </details>
       </section>

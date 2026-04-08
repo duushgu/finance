@@ -17,16 +17,16 @@ const QUICK_EXPENSE_BUTTONS = [
   {
     slot: "food",
     buttonId: "quickFoodExpenseBtn",
-    defaultLabel: "Lebensmittel",
+    defaultLabel: "Хүнс",
     fallbackQuery: "food",
-    aliases: ["lebensmittel", "food", "essen", "groceries", "grocery"]
+    aliases: ["хүнс", "food", "groceries", "grocery"]
   },
   {
     slot: "kids",
     buttonId: "quickKidsExpenseBtn",
-    defaultLabel: "Kinder",
+    defaultLabel: "Хүүхэд",
     fallbackQuery: "kids",
-    aliases: ["kinder", "kind", "kids", "baby", "kita"]
+    aliases: ["хүүхэд", "kids", "baby", "kita"]
   }
 ];
 
@@ -36,7 +36,7 @@ function normalizeQuickLookup(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[^\p{L}\p{N}]/gu, "");
 }
 
 function isExpenseCategory(category) {
@@ -107,7 +107,7 @@ function renderAccountBalances(accounts) {
   const container = document.getElementById("dashboardAccountBalances");
 
   if (!accounts.length) {
-    container.innerHTML = '<div class="empty-state">Keine Konten gefunden. Lege zuerst ein Konto an.</div>';
+    container.innerHTML = '<div class="empty-state">Данс алга байна. Эхлээд данс нэмнэ үү.</div>';
     return;
   }
 
@@ -146,20 +146,20 @@ function renderBudgetStatus(summary) {
   bar.style.width = `${ratioPercent}%`;
 
   if (ratio <= 0.8) {
-    label.textContent = "Grün: im Plan";
-    hint.textContent = "Ausgaben sind im sicheren Bereich.";
+    label.textContent = "Ногоон: хэвийн";
+    hint.textContent = "Зарлага аюулгүй түвшинд байна.";
     bar.className = "h-full rounded-full bg-emerald-500";
   } else if (ratio <= 1) {
-    label.textContent = "Gelb: eng";
-    hint.textContent = "Monat wird knapp. Bitte auf kleine Ausgaben achten.";
+    label.textContent = "Шар: анхаарах";
+    hint.textContent = "Сарын төсөв шахагдаж байна. Жижиг зардалдаа анхаарна уу.";
     bar.className = "h-full rounded-full bg-amber-500";
   } else {
-    label.textContent = "Rot: drüber";
-    hint.textContent = "Ausgaben sind höher als Einnahmen.";
+    label.textContent = "Улаан: хэтэрсэн";
+    hint.textContent = "Зарлага орлогоос өндөр байна.";
     bar.className = "h-full rounded-full bg-rose-600";
   }
 
-  detail.textContent = `Ausgabenquote: ${ratioPercent}% vom Monatseinkommen`;
+  detail.textContent = `Зарлагын хувь: сарын орлогын ${ratioPercent}%`;
 }
 
 function renderExpenseChart(groupedExpenses) {
@@ -167,7 +167,7 @@ function renderExpenseChart(groupedExpenses) {
   const hasChartLib = typeof window.Chart !== "undefined";
 
   if (!hasChartLib) {
-    canvas.parentElement.innerHTML = '<div class="empty-state">Chart-Bibliothek nicht verfügbar.</div>';
+    canvas.parentElement.innerHTML = '<div class="empty-state">Графикийн сан ачаалагдсангүй.</div>';
     return;
   }
 
@@ -179,7 +179,7 @@ function renderExpenseChart(groupedExpenses) {
     expenseChart = new window.Chart(canvas, {
       type: "doughnut",
       data: {
-        labels: ["Keine Ausgaben"],
+        labels: ["Зарлага алга"],
         datasets: [
           {
             data: [1],
@@ -237,7 +237,7 @@ function renderRecentTransactions(recentTransactions, accounts, categories) {
   const body = document.getElementById("recentTransactionsBody");
 
   if (!recentTransactions.length) {
-    body.innerHTML = '<tr><td colspan="6"><div class="empty-state">Noch keine Buchungen vorhanden.</div></td></tr>';
+    body.innerHTML = '<tr><td colspan="6"><div class="empty-state">Гүйлгээ хараахан алга.</div></td></tr>';
     return;
   }
 
@@ -247,7 +247,7 @@ function renderRecentTransactions(recentTransactions, accounts, categories) {
   body.innerHTML = recentTransactions
     .map((transaction) => {
       const typeLabel =
-        transaction.type === "expense" ? "Ausgabe" : transaction.type === "income" ? "Einnahme" : "Transfer";
+        transaction.type === "expense" ? "Зарлага" : transaction.type === "income" ? "Орлого" : "Шилжүүлэг";
       const typeClass =
         transaction.type === "expense"
           ? "type-expense"
@@ -277,7 +277,7 @@ function renderRecentTransactions(recentTransactions, accounts, categories) {
           <td><span class="type-chip ${typeClass}">${typeLabel}</span></td>
           <td class="font-semibold">${amountLabel}</td>
           <td>${accountLabel}</td>
-          <td>${categoryMap[transaction.category_id]?.name || (transaction.type === "expense" ? "Sonstiges" : "-")}</td>
+          <td>${categoryMap[transaction.category_id]?.name || (transaction.type === "expense" ? "Бусад" : "-")}</td>
           <td>${transaction.note || "-"}</td>
         </tr>
       `;

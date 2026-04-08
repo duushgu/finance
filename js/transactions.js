@@ -12,11 +12,12 @@ import {
   updateTransaction
 } from "./db.js";
 
-const DEFAULT_EXPENSE_CATEGORY_NAME = "Sonstiges";
+const DEFAULT_EXPENSE_CATEGORY_NAME = "Бусад";
+const DEFAULT_EXPENSE_CATEGORY_ALIASES = new Set(["бусад", "misc"]);
 const QUICK_EXPENSE_STORAGE_PREFIX = "finance.quickExpenseSlots";
 const QUICK_CATEGORY_ALIASES = {
-  food: ["lebensmittel", "food", "essen", "groceries", "grocery"],
-  kids: ["kinder", "kind", "kids", "baby", "kita"]
+  food: ["хүнс", "food", "groceries", "grocery"],
+  kids: ["хүүхэд", "kids", "baby", "kita"]
 };
 
 function escapeHtml(value) {
@@ -75,13 +76,13 @@ function parseCompactAmountInput(rawValue) {
 
 function normalizeTransactionType(value) {
   const normalized = String(value || "").trim().toLowerCase();
-  if (["ausgabe", "expense"].includes(normalized)) {
+  if (["зарлага", "zarlaga", "expense"].includes(normalized)) {
     return "expense";
   }
-  if (["einnahme", "income"].includes(normalized)) {
+  if (["орлого", "orlogo", "income"].includes(normalized)) {
     return "income";
   }
-  if (["transfer", "übertrag", "uebertrag"].includes(normalized)) {
+  if (["шилжүүлэг", "shiljuuleg", "transfer"].includes(normalized)) {
     return "transfer";
   }
   return "";
@@ -89,12 +90,12 @@ function normalizeTransactionType(value) {
 
 function labelForType(type) {
   if (type === "expense") {
-    return "Ausgabe";
+    return "Зарлага";
   }
   if (type === "income") {
-    return "Einnahme";
+    return "Орлого";
   }
-  return "Transfer";
+  return "Шилжүүлэг";
 }
 
 function normalizeDateInput(value) {
@@ -121,7 +122,7 @@ function normalizeQuickLookup(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[^\p{L}\p{N}]/gu, "");
 }
 
 function isExpenseCategory(category) {
@@ -222,7 +223,11 @@ export async function initTransactionsPage() {
     const match = list.find((item) => {
       const isExpenseCategory = item.type === "expense" || item.type === "both";
       const normalizedName = normalizeNameKey(item.name);
-      return isExpenseCategory && normalizedName === DEFAULT_EXPENSE_CATEGORY_NAME.toLowerCase();
+      return (
+        isExpenseCategory &&
+        (normalizedName === DEFAULT_EXPENSE_CATEGORY_NAME.toLowerCase() ||
+          DEFAULT_EXPENSE_CATEGORY_ALIASES.has(normalizedName))
+      );
     });
     return match?.id || "";
   }
@@ -244,7 +249,7 @@ export async function initTransactionsPage() {
       .map((category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`)
       .join("");
     const incomeCategoryOptions = [
-      '<option value="">Keine Kategorie</option>',
+      '<option value="">Ангилалгүй</option>',
       ...incomeCategories.map((category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`)
     ].join("");
 
@@ -375,22 +380,22 @@ export async function initTransactionsPage() {
     }
 
     toggleDeleteTransactionModeBtn.classList.toggle("is-active", isDeleteMode);
-    toggleDeleteTransactionModeBtn.textContent = "DEL";
+    toggleDeleteTransactionModeBtn.textContent = "УСТ";
 
     if (!isDeleteMode) {
-      toggleDeleteTransactionModeBtn.title = "Löschmodus starten";
-      toggleDeleteTransactionModeBtn.setAttribute("aria-label", "Löschmodus starten");
+      toggleDeleteTransactionModeBtn.title = "Устгах горим эхлүүлэх";
+      toggleDeleteTransactionModeBtn.setAttribute("aria-label", "Устгах горим эхлүүлэх");
       return;
     }
 
     if (selectedDeleteTransactionId) {
-      toggleDeleteTransactionModeBtn.title = "Ausgewählte Zeile löschen";
-      toggleDeleteTransactionModeBtn.setAttribute("aria-label", "Ausgewählte Zeile löschen");
+      toggleDeleteTransactionModeBtn.title = "Сонгосон мөрийг устгах";
+      toggleDeleteTransactionModeBtn.setAttribute("aria-label", "Сонгосон мөрийг устгах");
       return;
     }
 
-    toggleDeleteTransactionModeBtn.title = "Löschmodus beenden";
-    toggleDeleteTransactionModeBtn.setAttribute("aria-label", "Löschmodus beenden");
+    toggleDeleteTransactionModeBtn.title = "Устгах горим дуусгах";
+    toggleDeleteTransactionModeBtn.setAttribute("aria-label", "Устгах горим дуусгах");
   }
 
   function setDeleteMode(nextMode) {
@@ -423,7 +428,7 @@ export async function initTransactionsPage() {
 
     if (!finalRows.length) {
       transactionTableBody.innerHTML =
-        '<tr><td colspan="6"><div class="empty-state">Keine Buchungen in diesem Zeitraum.</div></td></tr>';
+        '<tr><td colspan="6"><div class="empty-state">Энэ хугацаанд гүйлгээ алга.</div></td></tr>';
       selectedDeleteTransactionId = "";
       applyDeleteModeStateToTable();
       return;
@@ -509,7 +514,7 @@ export async function initTransactionsPage() {
           : accounts.find((account) => account.id !== fromAccountId)?.id;
 
       if (!fromAccountId || !toAccountId || fromAccountId === toAccountId) {
-        throw new Error("Für Transfer werden zwei verschiedene Konten benötigt.");
+        throw new Error("Шилжүүлэг хийхэд хоёр өөр данс хэрэгтэй.");
       }
 
       return {
@@ -531,7 +536,7 @@ export async function initTransactionsPage() {
       accountId = accounts[0]?.id || null;
     }
     if (!accountId) {
-      throw new Error("Kein Konto verfügbar.");
+      throw new Error("Ашиглах данс олдсонгүй.");
     }
 
     const nextCategoryId =
@@ -576,7 +581,7 @@ export async function initTransactionsPage() {
     if (field === "date") {
       const nextDate = normalizeDateInput(currentText);
       if (!nextDate) {
-        throw new Error("Datum muss im Format JJJJ-MM-TT sein.");
+        throw new Error("Огноо YYYY-MM-DD форматтай байх ёстой.");
       }
       await updateTransaction(transactionId, { date: nextDate });
       return true;
@@ -585,7 +590,7 @@ export async function initTransactionsPage() {
     if (field === "type") {
       const nextType = normalizeTransactionType(currentText);
       if (!nextType) {
-        throw new Error("Typ muss Ausgabe, Einnahme oder Transfer sein.");
+        throw new Error("Төрөл нь Зарлага, Орлого эсвэл Шилжүүлэг байх ёстой.");
       }
       if (nextType === transaction.type) {
         return false;
@@ -598,7 +603,7 @@ export async function initTransactionsPage() {
     if (field === "amount") {
       const amount = parseCompactAmountInput(currentText);
       if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error("Ungültiger Betrag. Beispiel: 25000 oder 25k.");
+        throw new Error("Дүн буруу байна. Жишээ: 25000 эсвэл 25k.");
       }
       if (transaction.type === "transfer") {
         await updateTransaction(transactionId, { transfer_amount: amount, amount });
@@ -612,13 +617,13 @@ export async function initTransactionsPage() {
       if (transaction.type === "transfer") {
         const parts = currentText.split(/->|→/).map((item) => item.trim()).filter(Boolean);
         if (parts.length !== 2) {
-          throw new Error("Bei Transfer bitte 'Von -> Auf' angeben.");
+          throw new Error("Шилжүүлэгт 'Дансаас -> Данс руу' гэж оруулна уу.");
         }
 
         const fromAccount = findByName(accounts, parts[0]);
         const toAccount = findByName(accounts, parts[1]);
         if (!fromAccount || !toAccount || fromAccount.id === toAccount.id) {
-          throw new Error("Transfer benötigt zwei verschiedene, vorhandene Konten.");
+          throw new Error("Шилжүүлэг хийхийн тулд хоёр өөр байгаа данс шаардлагатай.");
         }
 
         await updateTransaction(transactionId, {
@@ -630,7 +635,7 @@ export async function initTransactionsPage() {
 
       const account = findByName(accounts, currentText);
       if (!account) {
-        throw new Error("Konto nicht gefunden.");
+        throw new Error("Данс олдсонгүй.");
       }
       await updateTransaction(transactionId, { account_id: account.id });
       return true;
@@ -639,7 +644,7 @@ export async function initTransactionsPage() {
     if (field === "category") {
       if (transaction.type === "transfer") {
         if (currentText && currentText !== "-") {
-          throw new Error("Transfer hat keine Kategorie.");
+          throw new Error("Шилжүүлэгт ангилал байдаггүй.");
         }
         return false;
       }
@@ -719,11 +724,11 @@ export async function initTransactionsPage() {
       const changed = await saveCellUpdate(cell);
       if (changed) {
         await refreshData();
-        showToast("Buchung aktualisiert.");
+        showToast("Гүйлгээ шинэчлэгдлээ.");
       }
     } catch (error) {
       cell.textContent = cell.dataset.originalValue || "";
-      showToast(error.message || "Aktualisierung fehlgeschlagen.");
+      showToast(error.message || "Шинэчилж чадсангүй.");
     } finally {
       isInlineSaving = false;
     }
@@ -751,13 +756,13 @@ export async function initTransactionsPage() {
 
     if (!isDeleteMode) {
       setDeleteMode(true);
-      showToast("Löschmodus aktiv: Zeile antippen, dann auf 'Auswahl löschen' drücken.");
+      showToast("Устгах горим идэвхтэй: мөрөө сонгоод УСТ товч дарна уу.");
       return;
     }
 
     if (!selectedDeleteTransactionId) {
       setDeleteMode(false);
-      showToast("Löschmodus beendet.");
+      showToast("Устгах горим дууслаа.");
       return;
     }
 
@@ -765,11 +770,11 @@ export async function initTransactionsPage() {
     const transaction = transactionMap.get(transactionId);
     if (!transactionId || !transaction) {
       setDeleteMode(false);
-      showToast("Keine gültige Zeile ausgewählt.");
+      showToast("Зөв мөр сонгогдоогүй байна.");
       return;
     }
 
-    const confirmDelete = window.confirm("Diese Buchung wirklich löschen?");
+    const confirmDelete = window.confirm("Энэ гүйлгээг устгах уу?");
     if (!confirmDelete) {
       return;
     }
@@ -777,12 +782,12 @@ export async function initTransactionsPage() {
     toggleDeleteTransactionModeBtn.disabled = true;
     try {
       await deleteTransaction(transactionId);
-      showToast("Buchung gelöscht.");
+      showToast("Гүйлгээ устгагдлаа.");
       selectedDeleteTransactionId = "";
       await refreshData();
       setDeleteMode(false);
     } catch (error) {
-      showToast(error.message || "Buchung konnte nicht gelöscht werden.");
+      showToast(error.message || "Гүйлгээг устгаж чадсангүй.");
     } finally {
       toggleDeleteTransactionModeBtn.disabled = false;
       updateDeleteButtonUi();
@@ -795,14 +800,14 @@ export async function initTransactionsPage() {
 
     const amount = parseCompactAmountInput(document.getElementById("expenseAmount").value);
     if (!Number.isFinite(amount) || amount <= 0) {
-      showToast("Ungültiger Betrag. Beispiel: 25000 oder 25k.");
+      showToast("Дүн буруу байна. Жишээ: 25000 эсвэл 25k.");
       return;
     }
 
     const selectedExpenseCategory =
       document.getElementById("expenseCategory").value || defaultExpenseCategoryId || null;
     if (!selectedExpenseCategory) {
-      showToast("Bitte zuerst mindestens eine Ausgaben-Kategorie anlegen.");
+      showToast("Эхлээд дор хаяж нэг зарлагын ангилал нэмнэ үү.");
       return;
     }
 
@@ -819,7 +824,7 @@ export async function initTransactionsPage() {
     document.getElementById("expenseDate").value = getTodayDateString();
     document.getElementById("expenseCategory").value = defaultExpenseCategoryId || "";
     closeModal(expenseModal);
-    showToast("Ausgabe gespeichert.");
+    showToast("Зарлага хадгалагдлаа.");
     await refreshData();
   });
 
@@ -828,7 +833,7 @@ export async function initTransactionsPage() {
 
     const amount = parseCompactAmountInput(document.getElementById("incomeAmount").value);
     if (!Number.isFinite(amount) || amount <= 0) {
-      showToast("Ungültiger Betrag. Beispiel: 25000 oder 25k.");
+      showToast("Дүн буруу байна. Жишээ: 25000 эсвэл 25k.");
       return;
     }
 
@@ -844,7 +849,7 @@ export async function initTransactionsPage() {
     incomeForm.reset();
     document.getElementById("incomeDate").value = getTodayDateString();
     closeModal(incomeModal);
-    showToast("Einnahme gespeichert.");
+    showToast("Орлого хадгалагдлаа.");
     await refreshData();
   });
 
@@ -853,7 +858,7 @@ export async function initTransactionsPage() {
 
     const amount = parseCompactAmountInput(document.getElementById("transferAmount").value);
     if (!Number.isFinite(amount) || amount <= 0) {
-      showToast("Ungültiger Betrag. Beispiel: 25000 oder 25k.");
+      showToast("Дүн буруу байна. Жишээ: 25000 эсвэл 25k.");
       return;
     }
 
@@ -861,7 +866,7 @@ export async function initTransactionsPage() {
     const toAccount = document.getElementById("transferToAccount").value;
 
     if (!fromAccount || !toAccount || fromAccount === toAccount) {
-      showToast("Bitte zwei verschiedene Konten auswählen.");
+      showToast("Хоёр өөр данс сонгоно уу.");
       return;
     }
 
@@ -877,7 +882,7 @@ export async function initTransactionsPage() {
     transferForm.reset();
     document.getElementById("transferDate").value = getTodayDateString();
     closeModal(transferModal);
-    showToast("Transfer gespeichert.");
+    showToast("Шилжүүлэг хадгалагдлаа.");
     await refreshData();
   });
 

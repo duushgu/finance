@@ -1,7 +1,7 @@
 {
-  "name": "Finance Tracker",
-  "short_name": "Finance",
-  "description": "Static finance tracker with Firebase Auth + Firestore",
+  "name": "Гэр бүлийн санхүү",
+  "short_name": "Санхүү",
+  "description": "Firebase ашигласан гэр бүлийн санхүүгийн бүртгэл",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

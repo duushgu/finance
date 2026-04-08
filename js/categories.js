@@ -12,12 +12,12 @@ function escapeHtml(value) {
 
 function labelForType(type) {
   if (type === "expense") {
-    return "Ausgabe";
+    return "Зарлага";
   }
   if (type === "income") {
-    return "Einnahme";
+    return "Орлого";
   }
-  return "Beides";
+  return "Хоёул";
 }
 
 function normalizeTypeInput(value) {
@@ -26,13 +26,13 @@ function normalizeTypeInput(value) {
     return "";
   }
 
-  if (["ausgabe", "expense"].includes(normalized)) {
+  if (["зарлага", "zarlaga", "expense"].includes(normalized)) {
     return "expense";
   }
-  if (["einnahme", "income"].includes(normalized)) {
+  if (["орлого", "orlogo", "income"].includes(normalized)) {
     return "income";
   }
-  if (["beides", "both"].includes(normalized)) {
+  if (["хоёул", "хоёулаа", "хоерул", "both"].includes(normalized)) {
     return "both";
   }
 
@@ -96,22 +96,22 @@ export async function initCategoriesPage() {
     }
 
     toggleDeleteCategoryModeBtn.classList.toggle("is-active", isDeleteMode);
-    toggleDeleteCategoryModeBtn.textContent = "DEL";
+    toggleDeleteCategoryModeBtn.textContent = "УСТ";
 
     if (!isDeleteMode) {
-      toggleDeleteCategoryModeBtn.title = "Löschmodus starten";
-      toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Löschmodus starten");
+      toggleDeleteCategoryModeBtn.title = "Устгах горим эхлүүлэх";
+      toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Устгах горим эхлүүлэх");
       return;
     }
 
     if (selectedDeleteCategoryId) {
-      toggleDeleteCategoryModeBtn.title = "Ausgewählte Zeile löschen";
-      toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Ausgewählte Zeile löschen");
+      toggleDeleteCategoryModeBtn.title = "Сонгосон мөрийг устгах";
+      toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Сонгосон мөрийг устгах");
       return;
     }
 
-    toggleDeleteCategoryModeBtn.title = "Löschmodus beenden";
-    toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Löschmodus beenden");
+    toggleDeleteCategoryModeBtn.title = "Устгах горим дуусгах";
+    toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Устгах горим дуусгах");
   }
 
   function setDeleteMode(nextMode) {
@@ -126,7 +126,7 @@ export async function initCategoriesPage() {
   function renderCategoryTable() {
     if (!categories.length) {
       categoriesTableBody.innerHTML =
-        '<tr><td colspan="2"><div class="empty-state">Noch keine Kategorien vorhanden.</div></td></tr>';
+        '<tr><td colspan="2"><div class="empty-state">Ангилал хараахан алга.</div></td></tr>';
       selectedDeleteCategoryId = "";
       applyDeleteModeStateToTable();
       return;
@@ -161,7 +161,11 @@ export async function initCategoriesPage() {
     const result = await ensureStarterCategories(user.uid);
     categories = result.categories;
     if (result.seeded) {
-      showToast("Standard-Kategorien wurden automatisch angelegt.");
+      showToast("Эхний ангиллууд автоматаар нэмэгдлээ.");
+      return;
+    }
+    if (result.migrated) {
+      showToast("Стандарт ангиллууд монгол нэр рүү шинэчлэгдлээ.");
     }
   }
 
@@ -187,7 +191,7 @@ export async function initCategoriesPage() {
     if (field === "name") {
       const nextName = currentText.trim();
       if (!nextName) {
-        throw new Error("Kategoriename darf nicht leer sein.");
+        throw new Error("Ангиллын нэр хоосон байж болохгүй.");
       }
       await updateCategory(categoryId, { name: nextName });
       return true;
@@ -196,7 +200,7 @@ export async function initCategoriesPage() {
     if (field === "type") {
       const nextType = normalizeTypeInput(currentText);
       if (!nextType) {
-        throw new Error("Typ muss Ausgabe, Einnahme oder Beides sein.");
+        throw new Error("Төрөл нь Зарлага, Орлого эсвэл Хоёул байх ёстой.");
       }
       await updateCategory(categoryId, { type: nextType });
       return true;
@@ -263,7 +267,7 @@ export async function initCategoriesPage() {
       const changed = await saveCellUpdate(cell);
       if (changed) {
         await refreshCategories();
-        showToast("Kategorie aktualisiert.");
+        showToast("Ангилал шинэчлэгдлээ.");
       }
     } catch (error) {
       cell.textContent = cell.dataset.originalValue || "";
@@ -295,13 +299,13 @@ export async function initCategoriesPage() {
 
     if (!isDeleteMode) {
       setDeleteMode(true);
-      showToast("Löschmodus aktiv: Zeile antippen, dann DEL drücken.");
+      showToast("Устгах горим идэвхтэй: мөрөө сонгоод УСТ товч дарна уу.");
       return;
     }
 
     if (!selectedDeleteCategoryId) {
       setDeleteMode(false);
-      showToast("Löschmodus beendet.");
+      showToast("Устгах горим дууслаа.");
       return;
     }
 
@@ -309,11 +313,11 @@ export async function initCategoriesPage() {
     const category = getCategoryById(categoryId);
     if (!categoryId || !category) {
       setDeleteMode(false);
-      showToast("Keine gültige Zeile ausgewählt.");
+      showToast("Зөв мөр сонгогдоогүй байна.");
       return;
     }
 
-    const confirmDelete = window.confirm(`Kategorie "${category.name}" wirklich löschen?`);
+    const confirmDelete = window.confirm(`"${category.name}" ангиллыг устгах уу?`);
     if (!confirmDelete) {
       return;
     }
@@ -321,12 +325,12 @@ export async function initCategoriesPage() {
     toggleDeleteCategoryModeBtn.disabled = true;
     try {
       await deleteCategory(categoryId);
-      showToast("Kategorie gelöscht.");
+      showToast("Ангилал устгагдлаа.");
       selectedDeleteCategoryId = "";
       await refreshCategories();
       setDeleteMode(false);
     } catch (error) {
-      showToast(error.message || "Kategorie konnte nicht gelöscht werden.");
+      showToast(error.message || "Ангиллыг устгаж чадсангүй.");
     } finally {
       toggleDeleteCategoryModeBtn.disabled = false;
       updateDeleteButtonUi();
@@ -341,7 +345,7 @@ export async function initCategoriesPage() {
     const type = document.getElementById("categoryType").value;
 
     if (!name) {
-      showToast("Bitte Name eingeben.");
+      showToast("Нэр оруулна уу.");
       return;
     }
 
@@ -350,7 +354,7 @@ export async function initCategoriesPage() {
     categoryForm.reset();
     document.getElementById("categoryType").value = "expense";
     closeCategoryModal();
-    showToast("Kategorie gespeichert.");
+    showToast("Ангилал хадгалагдлаа.");
     await refreshCategories();
   });
 
