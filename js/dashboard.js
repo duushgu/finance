@@ -72,45 +72,6 @@ function renderBudgetStatus(summary) {
   detail.textContent = `Ausgabenquote: ${ratioPercent}% vom Monatseinkommen`;
 }
 
-function renderFamilyGoals(transactions, categories) {
-  const container = document.getElementById("goalRows");
-  const monthKey = getMonthKey();
-
-  const goals = [
-    { label: "Hochzeit", target: 5000, keywords: ["hochzeit"] },
-    { label: "Notgroschen", target: 3000, keywords: ["notgroschen", "sparen", "reserve"] },
-    { label: "Kinder", target: 1500, keywords: ["kinder", "schule", "baby"] }
-  ];
-
-  const categoryMap = Object.fromEntries(categories.map((item) => [item.id, item.name?.toLowerCase() || ""]));
-
-  const rows = goals.map((goal) => {
-    const spent = transactions
-      .filter((item) => item.type === "expense" && (item.date || "").startsWith(monthKey))
-      .filter((item) => {
-        const categoryName = categoryMap[item.category_id] || "";
-        return goal.keywords.some((keyword) => categoryName.includes(keyword));
-      })
-      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
-    const progress = Math.max(0, Math.min(100, Math.round((spent / goal.target) * 100)));
-
-    return `
-      <div class="rounded-xl border border-emerald-100 p-3 bg-white/80">
-        <div class="flex items-center justify-between gap-3">
-          <p class="font-semibold">${goal.label}</p>
-          <p class="text-sm text-slate-600">${formatCurrency(spent)} / ${formatCurrency(goal.target)}</p>
-        </div>
-        <div class="mt-2 h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-          <div class="h-full rounded-full bg-emerald-500" style="width:${progress}%"></div>
-        </div>
-      </div>
-    `;
-  });
-
-  container.innerHTML = rows.join("");
-}
-
 function renderExpenseChart(groupedExpenses) {
   const canvas = document.getElementById("expenseChart");
   const hasChartLib = typeof window.Chart !== "undefined";
@@ -254,7 +215,6 @@ export async function initDashboard() {
   renderAccountBalances(accountsWithBalances);
   renderSummary(summary);
   renderBudgetStatus(summary);
-  renderFamilyGoals(transactions, categories);
   renderExpenseChart(expensesByCategory);
   renderRecentTransactions(recentTransactions, accounts, categories);
 }
