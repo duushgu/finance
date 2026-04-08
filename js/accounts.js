@@ -2,6 +2,7 @@ import { bindAuthUi, registerPwaWorker, requireAuthPage, showToast } from "./aut
 import {
   calculateAccountBalances,
   createAccount,
+  deleteAccount,
   formatCurrency,
   getAccounts,
   getTransactions,
@@ -53,9 +54,19 @@ export async function initAccountsPage() {
   const accountModal = document.getElementById("accountModal");
   const openAccountModalBtn = document.getElementById("openAccountModalBtn");
   const closeAccountModalBtn = document.getElementById("closeAccountModalBtn");
+  const toggleDeleteAccountModeBtn = document.getElementById("toggleDeleteAccountModeBtn");
 
   let accountsWithBalance = [];
   let isInlineSaving = false;
+  let isDeleteMode = false;
+  let selectedDeleteAccountId = "";
+
+  async function waitForInlineSaveIdle(timeoutMs = 1200) {
+    const startedAt = Date.now();
+    while (isInlineSaving && Date.now() - startedAt < timeoutMs) {
+      await new Promise((resolve) => window.setTimeout(resolve, 35));
+    }
+  }
 
   function openAccountModal() {
     accountModal.classList.remove("hidden");
@@ -70,6 +81,53 @@ export async function initAccountsPage() {
     return accountsWithBalance.find((item) => item.id === accountId);
   }
 
+  function applyDeleteModeStateToTable() {
+    const rows = Array.from(accountsTableBody.querySelectorAll("tr[data-account-id]"));
+    rows.forEach((row) => {
+      const isSelected = isDeleteMode && row.dataset.accountId === selectedDeleteAccountId;
+      row.classList.toggle("row-selectable", isDeleteMode);
+      row.classList.toggle("row-selected", isSelected);
+    });
+
+    const editableCells = accountsTableBody.querySelectorAll(".editable-cell");
+    editableCells.forEach((cell) => {
+      cell.setAttribute("contenteditable", isDeleteMode ? "false" : "true");
+    });
+  }
+
+  function updateDeleteButtonUi() {
+    if (!toggleDeleteAccountModeBtn) {
+      return;
+    }
+
+    toggleDeleteAccountModeBtn.classList.toggle("is-active", isDeleteMode);
+    toggleDeleteAccountModeBtn.textContent = "DEL";
+
+    if (!isDeleteMode) {
+      toggleDeleteAccountModeBtn.title = "Löschmodus starten";
+      toggleDeleteAccountModeBtn.setAttribute("aria-label", "Löschmodus starten");
+      return;
+    }
+
+    if (selectedDeleteAccountId) {
+      toggleDeleteAccountModeBtn.title = "Ausgewählte Zeile löschen";
+      toggleDeleteAccountModeBtn.setAttribute("aria-label", "Ausgewählte Zeile löschen");
+      return;
+    }
+
+    toggleDeleteAccountModeBtn.title = "Löschmodus beenden";
+    toggleDeleteAccountModeBtn.setAttribute("aria-label", "Löschmodus beenden");
+  }
+
+  function setDeleteMode(nextMode) {
+    isDeleteMode = nextMode;
+    if (!isDeleteMode) {
+      selectedDeleteAccountId = "";
+    }
+    updateDeleteButtonUi();
+    applyDeleteModeStateToTable();
+  }
+
   async function renderAccounts() {
     const [accounts, transactions] = await Promise.all([getAccounts(user.uid), getTransactions(user.uid)]);
     accountsWithBalance = calculateAccountBalances(accounts, transactions);
@@ -77,14 +135,22 @@ export async function initAccountsPage() {
     if (!accountsWithBalance.length) {
       accountsTableBody.innerHTML =
         '<tr><td colspan="2"><div class="empty-state">Noch kein Konto vorhanden. Bitte zuerst ein Konto anlegen.</div></td></tr>';
+      selectedDeleteAccountId = "";
+      applyDeleteModeStateToTable();
       return;
+    }
+
+    if (selectedDeleteAccountId && !accountsWithBalance.some((item) => item.id === selectedDeleteAccountId)) {
+      selectedDeleteAccountId = "";
     }
 
     accountsTableBody.innerHTML = accountsWithBalance
       .map((account) => {
         const netActivity = Number(account.current_balance || 0) - Number(account.initial_balance || 0);
+        const selectedClass = isDeleteMode && account.id === selectedDeleteAccountId ? " row-selected" : "";
+        const selectableClass = isDeleteMode ? " row-selectable" : "";
         return `
-          <tr data-account-id="${account.id}" data-net-activity="${netActivity}">
+          <tr data-account-id="${account.id}" data-net-activity="${netActivity}" class="${selectableClass}${selectedClass}">
             <td
               class="editable-cell"
               contenteditable="true"
@@ -101,6 +167,8 @@ export async function initAccountsPage() {
         `;
       })
       .join("");
+
+    applyDeleteModeStateToTable();
   }
 
   async function saveCellUpdate(cell) {
@@ -163,6 +231,10 @@ export async function initAccountsPage() {
   });
 
   accountsTableBody.addEventListener("focusin", (event) => {
+    if (isDeleteMode) {
+      return;
+    }
+
     const cell = event.target.closest(".editable-cell");
     if (!cell) {
       return;
@@ -171,6 +243,10 @@ export async function initAccountsPage() {
   });
 
   accountsTableBody.addEventListener("keydown", (event) => {
+    if (isDeleteMode) {
+      return;
+    }
+
     const cell = event.target.closest(".editable-cell");
     if (!cell) {
       return;
@@ -183,6 +259,10 @@ export async function initAccountsPage() {
   });
 
   accountsTableBody.addEventListener("focusout", async (event) => {
+    if (isDeleteMode) {
+      return;
+    }
+
     const cell = event.target.closest(".editable-cell");
     if (!cell || isInlineSaving) {
       return;
@@ -200,6 +280,67 @@ export async function initAccountsPage() {
       showToast(error.message || "Aktualisierung fehlgeschlagen.");
     } finally {
       isInlineSaving = false;
+    }
+  });
+
+  accountsTableBody.addEventListener("click", (event) => {
+    if (!isDeleteMode) {
+      return;
+    }
+
+    const row = event.target.closest("tr[data-account-id]");
+    if (!row) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectedDeleteAccountId = row.dataset.accountId || "";
+    applyDeleteModeStateToTable();
+    updateDeleteButtonUi();
+  });
+
+  toggleDeleteAccountModeBtn?.addEventListener("click", async () => {
+    await waitForInlineSaveIdle();
+
+    if (!isDeleteMode) {
+      setDeleteMode(true);
+      showToast("Löschmodus aktiv: Zeile antippen, dann DEL drücken.");
+      return;
+    }
+
+    if (!selectedDeleteAccountId) {
+      setDeleteMode(false);
+      showToast("Löschmodus beendet.");
+      return;
+    }
+
+    const accountId = selectedDeleteAccountId;
+    const account = getAccountById(accountId);
+    if (!accountId || !account) {
+      setDeleteMode(false);
+      showToast("Keine gültige Zeile ausgewählt.");
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Konto "${account.name}" wirklich löschen?`);
+    if (!confirmDelete) {
+      return;
+    }
+
+    toggleDeleteAccountModeBtn.disabled = true;
+    try {
+      await deleteAccount(accountId);
+      showToast("Konto gelöscht.");
+      selectedDeleteAccountId = "";
+      await renderAccounts();
+      setDeleteMode(false);
+    } catch (error) {
+      showToast(error.message || "Konto konnte nicht gelöscht werden.");
+    } finally {
+      toggleDeleteAccountModeBtn.disabled = false;
+      updateDeleteButtonUi();
+      applyDeleteModeStateToTable();
     }
   });
 
@@ -227,4 +368,5 @@ export async function initAccountsPage() {
   });
 
   await renderAccounts();
+  updateDeleteButtonUi();
 }

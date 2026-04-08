@@ -200,6 +200,26 @@ a {
   color: #4f7a6d;
 }
 
+.row-selectable td {
+  cursor: pointer;
+}
+
+.row-selected td {
+  background: #ffecec;
+}
+
+.btn-delete-mode {
+  background: #fff2f2;
+  color: #a12727;
+  border: 1px solid #f3c2c2;
+}
+
+.btn-delete-mode.is-active {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #b91c1c;
+}
+
 .type-chip {
   display: inline-flex;
   align-items: center;
@@ -268,6 +288,31 @@ a {
   z-index: 55;
 }
 
+.fab-actions {
+  position: fixed;
+  right: 1rem;
+  bottom: 5.4rem;
+  display: flex;
+  gap: 0.55rem;
+  z-index: 55;
+}
+
+.fab-actions .fab-btn {
+  position: static;
+  right: auto;
+  bottom: auto;
+}
+
+.fab-btn-danger {
+  background: linear-gradient(120deg, #dc2626 0%, #b91c1c 100%);
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+}
+
+.fab-btn-danger.is-active {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.24), 0 12px 24px rgba(185, 28, 28, 0.36);
+}
+
 .fab-btn:active {
   transform: translateY(1px);
 }
@@ -325,11 +370,15 @@ a {
   .fab-btn {
     bottom: 1.5rem;
   }
+
+  .fab-actions {
+    bottom: 1.5rem;
+  }
 }
 
 @media (min-width: 768px) {
   .action-buttons {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -414,6 +463,26 @@ a {
   .type-transfer {
     background: #243f6f;
     color: #d4e2ff;
+  }
+
+  .row-selected td {
+    background: #3a262b;
+  }
+
+  .btn-delete-mode {
+    border-color: #5a3538;
+    background: #2d1f22;
+    color: #ffb7b7;
+  }
+
+  .btn-delete-mode.is-active {
+    background: #b91c1c;
+    border-color: #991b1b;
+    color: #ffffff;
+  }
+
+  .fab-btn-danger {
+    background: linear-gradient(120deg, #b91c1c 0%, #991b1b 100%);
   }
 
   .empty-state {

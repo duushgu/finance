@@ -2,6 +2,7 @@ import { bindAuthUi, registerPwaWorker, requireAuthPage, showToast } from "./aut
 import {
   createCategory,
   createTransaction,
+  deleteTransaction,
   formatCurrency,
   getAccounts,
   getCategories,
@@ -12,6 +13,11 @@ import {
 } from "./db.js";
 
 const DEFAULT_EXPENSE_CATEGORY_NAME = "Sonstiges";
+const QUICK_EXPENSE_STORAGE_PREFIX = "finance.quickExpenseSlots";
+const QUICK_CATEGORY_ALIASES = {
+  food: ["lebensmittel", "food", "essen", "groceries", "grocery"],
+  kids: ["kinder", "kind", "kids", "baby", "kita"]
+};
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -109,6 +115,45 @@ function normalizeNameKey(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeQuickLookup(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function isExpenseCategory(category) {
+  const type = String(category?.type || "").toLowerCase();
+  return !type || type === "expense" || type === "both";
+}
+
+function getQuickStorageKey(userId) {
+  return `${QUICK_EXPENSE_STORAGE_PREFIX}:${userId}`;
+}
+
+function readQuickCategoryMapping(userId) {
+  try {
+    const raw = localStorage.getItem(getQuickStorageKey(userId));
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeQuickCategoryMapping(userId, mapping) {
+  try {
+    localStorage.setItem(getQuickStorageKey(userId), JSON.stringify(mapping));
+  } catch (error) {
+    // localStorage can be unavailable in private mode; fail silently.
+  }
+}
+
 function findByName(list, value) {
   const key = normalizeNameKey(value);
   return list.find((item) => normalizeNameKey(item.name) === key) || null;
@@ -134,6 +179,7 @@ export async function initTransactionsPage() {
   const openExpenseModalBtn = document.getElementById("openExpenseModalBtn");
   const openIncomeModalBtn = document.getElementById("openIncomeModalBtn");
   const openTransferModalBtn = document.getElementById("openTransferModalBtn");
+  const toggleDeleteTransactionModeBtn = document.getElementById("toggleDeleteTransactionModeBtn");
   const closeExpenseModalBtn = document.getElementById("closeExpenseModalBtn");
   const closeIncomeModalBtn = document.getElementById("closeIncomeModalBtn");
   const closeTransferModalBtn = document.getElementById("closeTransferModalBtn");
@@ -145,6 +191,15 @@ export async function initTransactionsPage() {
   let listMode = "month";
   let defaultExpenseCategoryId = "";
   let isInlineSaving = false;
+  let isDeleteMode = false;
+  let selectedDeleteTransactionId = "";
+
+  async function waitForInlineSaveIdle(timeoutMs = 1200) {
+    const startedAt = Date.now();
+    while (isInlineSaving && Date.now() - startedAt < timeoutMs) {
+      await new Promise((resolve) => window.setTimeout(resolve, 35));
+    }
+  }
 
   function openModal(modal, firstFieldId) {
     modal.classList.remove("hidden");
@@ -219,6 +274,129 @@ export async function initTransactionsPage() {
     categories = await getCategories(user.uid);
   }
 
+  function clearQuickExpenseParams() {
+    const url = new URL(window.location.href);
+    let changed = false;
+
+    ["expenseCategoryId", "quick"].forEach((param) => {
+      if (url.searchParams.has(param)) {
+        url.searchParams.delete(param);
+        changed = true;
+      }
+    });
+
+    if (!changed) {
+      return;
+    }
+
+    const search = url.searchParams.toString();
+    const nextUrl = `${url.pathname}${search ? `?${search}` : ""}${url.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }
+
+  function findExpenseCategoryFromQuickKey(quickKey) {
+    const expenseCategories = categories.filter((item) => isExpenseCategory(item));
+    const savedMapping = readQuickCategoryMapping(user.uid);
+    const savedCategoryId = savedMapping[quickKey];
+    if (savedCategoryId) {
+      const fromSaved = expenseCategories.find((item) => item.id === savedCategoryId);
+      if (fromSaved) {
+        return fromSaved;
+      }
+    }
+
+    const aliases = QUICK_CATEGORY_ALIASES[quickKey] || [quickKey];
+    const aliasSet = new Set(aliases.map((alias) => normalizeQuickLookup(alias)));
+    return expenseCategories.find((item) => aliasSet.has(normalizeQuickLookup(item.name))) || null;
+  }
+
+  function resolveQuickExpenseRequest() {
+    const params = new URLSearchParams(window.location.search);
+    const explicitCategoryId = String(params.get("expenseCategoryId") || "").trim();
+    const quickKey = String(params.get("quick") || "")
+      .trim()
+      .toLowerCase();
+
+    const hasQuickRequest = Boolean(explicitCategoryId || quickKey);
+    if (!hasQuickRequest) {
+      return { shouldOpen: false, categoryId: "" };
+    }
+
+    const expenseCategories = categories.filter((item) => isExpenseCategory(item));
+    if (explicitCategoryId) {
+      const fromId = expenseCategories.find((item) => item.id === explicitCategoryId);
+      if (fromId) {
+        return { shouldOpen: true, categoryId: fromId.id };
+      }
+    }
+
+    if (quickKey) {
+      const matchedCategory = findExpenseCategoryFromQuickKey(quickKey);
+      if (matchedCategory) {
+        const mapping = readQuickCategoryMapping(user.uid);
+        mapping[quickKey] = matchedCategory.id;
+        writeQuickCategoryMapping(user.uid, mapping);
+        return { shouldOpen: true, categoryId: matchedCategory.id };
+      }
+    }
+
+    return { shouldOpen: true, categoryId: "" };
+  }
+
+  function openQuickExpenseModalIfRequested() {
+    const request = resolveQuickExpenseRequest();
+    if (!request.shouldOpen) {
+      return;
+    }
+
+    const expenseCategorySelect = document.getElementById("expenseCategory");
+    expenseCategorySelect.value = request.categoryId || defaultExpenseCategoryId || expenseCategorySelect.value;
+    openModal(expenseModal, "expenseAmount");
+    clearQuickExpenseParams();
+  }
+
+  function applyDeleteModeStateToTable() {
+    const rows = Array.from(transactionTableBody.querySelectorAll("tr[data-transaction-id]"));
+    rows.forEach((row) => {
+      const isSelected = isDeleteMode && row.dataset.transactionId === selectedDeleteTransactionId;
+      row.classList.toggle("row-selectable", isDeleteMode);
+      row.classList.toggle("row-selected", isSelected);
+    });
+
+    const editableCells = transactionTableBody.querySelectorAll(".editable-cell");
+    editableCells.forEach((cell) => {
+      cell.setAttribute("contenteditable", isDeleteMode ? "false" : "true");
+    });
+  }
+
+  function updateDeleteButtonUi() {
+    if (!toggleDeleteTransactionModeBtn) {
+      return;
+    }
+
+    toggleDeleteTransactionModeBtn.classList.toggle("is-active", isDeleteMode);
+    if (!isDeleteMode) {
+      toggleDeleteTransactionModeBtn.textContent = "Zeile löschen";
+      return;
+    }
+
+    if (selectedDeleteTransactionId) {
+      toggleDeleteTransactionModeBtn.textContent = "Auswahl löschen";
+      return;
+    }
+
+    toggleDeleteTransactionModeBtn.textContent = "Löschmodus beenden";
+  }
+
+  function setDeleteMode(nextMode) {
+    isDeleteMode = nextMode;
+    if (!isDeleteMode) {
+      selectedDeleteTransactionId = "";
+    }
+    updateDeleteButtonUi();
+    applyDeleteModeStateToTable();
+  }
+
   function renderTransactionTable() {
     const accountMap = Object.fromEntries(accounts.map((account) => [account.id, account]));
     const categoryMap = Object.fromEntries(categories.map((category) => [category.id, category]));
@@ -241,7 +419,13 @@ export async function initTransactionsPage() {
     if (!finalRows.length) {
       transactionTableBody.innerHTML =
         '<tr><td colspan="6"><div class="empty-state">Keine Buchungen in diesem Zeitraum.</div></td></tr>';
+      selectedDeleteTransactionId = "";
+      applyDeleteModeStateToTable();
       return;
+    }
+
+    if (selectedDeleteTransactionId && !finalRows.some((item) => item.id === selectedDeleteTransactionId)) {
+      selectedDeleteTransactionId = "";
     }
 
     transactionTableBody.innerHTML = finalRows
@@ -257,8 +441,10 @@ export async function initTransactionsPage() {
         const categoryName =
           categoryMap[transaction.category_id]?.name || (type === "expense" ? DEFAULT_EXPENSE_CATEGORY_NAME : "-");
 
+        const selectedClass = isDeleteMode && transaction.id === selectedDeleteTransactionId ? " row-selected" : "";
+        const selectableClass = isDeleteMode ? " row-selectable" : "";
         return `
-          <tr data-transaction-id="${transaction.id}">
+          <tr data-transaction-id="${transaction.id}" class="${selectableClass}${selectedClass}">
             <td class="editable-cell" contenteditable="true" data-field="date" spellcheck="false">${escapeHtml(transaction.date || "")}</td>
             <td class="editable-cell" contenteditable="true" data-field="type" spellcheck="false">${labelForType(type)}</td>
             <td class="editable-cell font-semibold" contenteditable="true" data-field="amount" spellcheck="false">${formatCurrency(amount)}</td>
@@ -269,6 +455,8 @@ export async function initTransactionsPage() {
         `;
       })
       .join("");
+
+    applyDeleteModeStateToTable();
   }
 
   async function refreshData() {
@@ -487,6 +675,9 @@ export async function initTransactionsPage() {
   });
 
   transactionTableBody.addEventListener("focusin", (event) => {
+    if (isDeleteMode) {
+      return;
+    }
     const cell = event.target.closest(".editable-cell");
     if (!cell) {
       return;
@@ -495,6 +686,9 @@ export async function initTransactionsPage() {
   });
 
   transactionTableBody.addEventListener("keydown", (event) => {
+    if (isDeleteMode) {
+      return;
+    }
     const cell = event.target.closest(".editable-cell");
     if (!cell) {
       return;
@@ -507,6 +701,9 @@ export async function initTransactionsPage() {
   });
 
   transactionTableBody.addEventListener("focusout", async (event) => {
+    if (isDeleteMode) {
+      return;
+    }
     const cell = event.target.closest(".editable-cell");
     if (!cell || isInlineSaving) {
       return;
@@ -524,6 +721,67 @@ export async function initTransactionsPage() {
       showToast(error.message || "Aktualisierung fehlgeschlagen.");
     } finally {
       isInlineSaving = false;
+    }
+  });
+
+  transactionTableBody.addEventListener("click", (event) => {
+    if (!isDeleteMode) {
+      return;
+    }
+
+    const row = event.target.closest("tr[data-transaction-id]");
+    if (!row) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectedDeleteTransactionId = row.dataset.transactionId || "";
+    applyDeleteModeStateToTable();
+    updateDeleteButtonUi();
+  });
+
+  toggleDeleteTransactionModeBtn?.addEventListener("click", async () => {
+    await waitForInlineSaveIdle();
+
+    if (!isDeleteMode) {
+      setDeleteMode(true);
+      showToast("Löschmodus aktiv: Zeile antippen, dann auf 'Auswahl löschen' drücken.");
+      return;
+    }
+
+    if (!selectedDeleteTransactionId) {
+      setDeleteMode(false);
+      showToast("Löschmodus beendet.");
+      return;
+    }
+
+    const transactionId = selectedDeleteTransactionId;
+    const transaction = transactionMap.get(transactionId);
+    if (!transactionId || !transaction) {
+      setDeleteMode(false);
+      showToast("Keine gültige Zeile ausgewählt.");
+      return;
+    }
+
+    const confirmDelete = window.confirm("Diese Buchung wirklich löschen?");
+    if (!confirmDelete) {
+      return;
+    }
+
+    toggleDeleteTransactionModeBtn.disabled = true;
+    try {
+      await deleteTransaction(transactionId);
+      showToast("Buchung gelöscht.");
+      selectedDeleteTransactionId = "";
+      await refreshData();
+      setDeleteMode(false);
+    } catch (error) {
+      showToast(error.message || "Buchung konnte nicht gelöscht werden.");
+    } finally {
+      toggleDeleteTransactionModeBtn.disabled = false;
+      updateDeleteButtonUi();
+      applyDeleteModeStateToTable();
     }
   });
 
@@ -635,4 +893,6 @@ export async function initTransactionsPage() {
 
   setDefaultDates();
   await refreshData();
+  openQuickExpenseModalIfRequested();
+  updateDeleteButtonUi();
 }

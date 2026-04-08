@@ -7,6 +7,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db, googleProvider, isFirebaseConfigured } from "./firebase.js";
+import { ensureStarterCategories } from "./db.js";
 
 let persistencePromise;
 
@@ -92,6 +93,11 @@ export async function setupLoginPage() {
       loginBtn.textContent = "Anmeldung läuft...";
       const credential = await signInWithPopup(auth, googleProvider);
       await syncUserDocument(credential.user);
+      try {
+        await ensureStarterCategories(credential.user.uid);
+      } catch (error) {
+        console.warn("Starter categories bootstrap skipped:", error);
+      }
       window.location.href = "./dashboard.html";
     } catch (error) {
       console.error("Google sign in failed:", error);
@@ -102,8 +108,13 @@ export async function setupLoginPage() {
     }
   });
 
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
+      try {
+        await ensureStarterCategories(user.uid);
+      } catch (error) {
+        console.warn("Starter categories bootstrap skipped:", error);
+      }
       window.location.href = "./dashboard.html";
     }
   });
@@ -119,6 +130,11 @@ export async function requireAuthPage() {
           await syncUserDocument(user);
         } catch (error) {
           console.warn("User profile sync skipped:", error);
+        }
+        try {
+          await ensureStarterCategories(user.uid);
+        } catch (error) {
+          console.warn("Starter categories bootstrap skipped:", error);
         }
         unsubscribe();
         resolve(user);

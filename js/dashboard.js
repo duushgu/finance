@@ -12,6 +12,96 @@ import {
 } from "./db.js";
 
 let expenseChart;
+const QUICK_EXPENSE_STORAGE_PREFIX = "finance.quickExpenseSlots";
+const QUICK_EXPENSE_BUTTONS = [
+  {
+    slot: "food",
+    buttonId: "quickFoodExpenseBtn",
+    defaultLabel: "Lebensmittel",
+    fallbackQuery: "food",
+    aliases: ["lebensmittel", "food", "essen", "groceries", "grocery"]
+  },
+  {
+    slot: "kids",
+    buttonId: "quickKidsExpenseBtn",
+    defaultLabel: "Kinder",
+    fallbackQuery: "kids",
+    aliases: ["kinder", "kind", "kids", "baby", "kita"]
+  }
+];
+
+function normalizeQuickLookup(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function isExpenseCategory(category) {
+  const categoryType = String(category?.type || "").toLowerCase();
+  return !categoryType || categoryType === "expense" || categoryType === "both";
+}
+
+function getQuickStorageKey(userId) {
+  return `${QUICK_EXPENSE_STORAGE_PREFIX}:${userId}`;
+}
+
+function readQuickCategoryMapping(userId) {
+  try {
+    const raw = localStorage.getItem(getQuickStorageKey(userId));
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeQuickCategoryMapping(userId, mapping) {
+  try {
+    localStorage.setItem(getQuickStorageKey(userId), JSON.stringify(mapping));
+  } catch (error) {
+    // localStorage can be unavailable in private mode; fail silently.
+  }
+}
+
+function findCategoryByAliases(categories, aliases) {
+  const aliasSet = new Set(aliases.map((alias) => normalizeQuickLookup(alias)));
+  return categories.find((category) => aliasSet.has(normalizeQuickLookup(category.name))) || null;
+}
+
+function configureQuickExpenseButtons(categories, userId) {
+  const expenseCategories = categories.filter((category) => isExpenseCategory(category));
+  const savedMapping = readQuickCategoryMapping(userId);
+  const nextMapping = { ...savedMapping };
+
+  QUICK_EXPENSE_BUTTONS.forEach((quickConfig) => {
+    const button = document.getElementById(quickConfig.buttonId);
+    if (!button) {
+      return;
+    }
+
+    const categoryFromSavedId = expenseCategories.find((category) => category.id === savedMapping[quickConfig.slot]);
+    const matchedCategory = categoryFromSavedId || findCategoryByAliases(expenseCategories, quickConfig.aliases);
+
+    if (matchedCategory) {
+      button.textContent = `+ ${matchedCategory.name}`;
+      button.href = `./transactions.html?expenseCategoryId=${encodeURIComponent(matchedCategory.id)}`;
+      nextMapping[quickConfig.slot] = matchedCategory.id;
+      return;
+    }
+
+    button.textContent = `+ ${quickConfig.defaultLabel}`;
+    button.href = `./transactions.html?quick=${encodeURIComponent(quickConfig.fallbackQuery)}`;
+    delete nextMapping[quickConfig.slot];
+  });
+
+  writeQuickCategoryMapping(userId, nextMapping);
+}
 
 function renderAccountBalances(accounts) {
   const container = document.getElementById("dashboardAccountBalances");
@@ -212,6 +302,7 @@ export async function initDashboard() {
   const expensesByCategory = groupExpensesByCategory(transactions, categories, monthKey);
   const recentTransactions = getRecentTransactions(transactions, 8);
 
+  configureQuickExpenseButtons(categories, user.uid);
   renderAccountBalances(accountsWithBalances);
   renderSummary(summary);
   renderBudgetStatus(summary);

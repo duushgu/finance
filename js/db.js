@@ -1,10 +1,12 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -17,6 +19,19 @@ function toNumber(value) {
 
 export const APP_CURRENCY_CODE = "MNT";
 export const APP_CURRENCY_SYMBOL = "₮";
+export const STARTER_CATEGORIES = [
+  { key: "misc", name: "Sonstiges", type: "expense" },
+  { key: "housing", name: "Miete/Wohnen", type: "expense" },
+  { key: "utilities", name: "Strom/Internet/Versicherung", type: "expense" },
+  { key: "food", name: "Lebensmittel", type: "expense" },
+  { key: "kids", name: "Kinder", type: "expense" },
+  { key: "transport", name: "Sprit/Transport", type: "expense" },
+  { key: "work", name: "Arbeit/Werkzeug", type: "expense" },
+  { key: "health", name: "Gesundheit", type: "expense" },
+  { key: "wedding", name: "Hochzeit", type: "expense" },
+  { key: "savings", name: "Notgroschen", type: "expense" },
+  { key: "salary", name: "Lohn", type: "income" }
+];
 
 export function getTodayDateString() {
   return new Date().toISOString().slice(0, 10);
@@ -75,6 +90,10 @@ export async function updateAccount(accountId, payload) {
   });
 }
 
+export async function deleteAccount(accountId) {
+  return deleteDoc(doc(db, "accounts", accountId));
+}
+
 export async function createCategory(userId, payload) {
   return addDoc(collection(db, "categories"), {
     name: payload.name.trim(),
@@ -92,11 +111,42 @@ export async function getCategories(userId) {
   return withId(snapshot).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export async function ensureStarterCategories(userId) {
+  const existing = await getCategories(userId);
+  if (existing.length) {
+    return { categories: existing, seeded: false };
+  }
+
+  await Promise.all(
+    STARTER_CATEGORIES.map((item) => {
+      const docId = `${userId}_starter_${item.key}`;
+      return setDoc(
+        doc(db, "categories", docId),
+        {
+          name: item.name,
+          type: item.type,
+          parent_id: null,
+          user_id: userId,
+          created_at: serverTimestamp()
+        },
+        { merge: true }
+      );
+    })
+  );
+
+  const seededCategories = await getCategories(userId);
+  return { categories: seededCategories, seeded: true };
+}
+
 export async function updateCategory(categoryId, payload) {
   return updateDoc(doc(db, "categories", categoryId), {
     ...payload,
     updated_at: serverTimestamp()
   });
+}
+
+export async function deleteCategory(categoryId) {
+  return deleteDoc(doc(db, "categories", categoryId));
 }
 
 export async function createTransaction(userId, payload) {
@@ -147,6 +197,10 @@ export async function updateTransaction(transactionId, payload) {
     ...payload,
     updated_at: serverTimestamp()
   });
+}
+
+export async function deleteTransaction(transactionId) {
+  return deleteDoc(doc(db, "transactions", transactionId));
 }
 
 export function calculateAccountBalances(accounts, transactions) {

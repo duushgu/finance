@@ -1,5 +1,5 @@
 import { bindAuthUi, registerPwaWorker, requireAuthPage, showToast } from "./auth.js";
-import { createCategory, getCategories, updateCategory } from "./db.js";
+import { createCategory, deleteCategory, ensureStarterCategories, getCategories, updateCategory } from "./db.js";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -49,22 +49,19 @@ export async function initCategoriesPage() {
   const categoryModal = document.getElementById("categoryModal");
   const openCategoryModalBtn = document.getElementById("openCategoryModalBtn");
   const closeCategoryModalBtn = document.getElementById("closeCategoryModalBtn");
+  const toggleDeleteCategoryModeBtn = document.getElementById("toggleDeleteCategoryModeBtn");
 
   let categories = [];
   let isInlineSaving = false;
-  const familyDefaults = [
-    { name: "Sonstiges", type: "expense" },
-    { name: "Miete/Wohnen", type: "expense" },
-    { name: "Strom/Internet/Versicherung", type: "expense" },
-    { name: "Lebensmittel", type: "expense" },
-    { name: "Kinder", type: "expense" },
-    { name: "Sprit/Transport", type: "expense" },
-    { name: "Arbeit/Werkzeug", type: "expense" },
-    { name: "Gesundheit", type: "expense" },
-    { name: "Hochzeit", type: "expense" },
-    { name: "Notgroschen", type: "expense" },
-    { name: "Lohn", type: "income" }
-  ];
+  let isDeleteMode = false;
+  let selectedDeleteCategoryId = "";
+
+  async function waitForInlineSaveIdle(timeoutMs = 1200) {
+    const startedAt = Date.now();
+    while (isInlineSaving && Date.now() - startedAt < timeoutMs) {
+      await new Promise((resolve) => window.setTimeout(resolve, 35));
+    }
+  }
 
   function openCategoryModal() {
     categoryModal.classList.remove("hidden");
@@ -79,23 +76,80 @@ export async function initCategoriesPage() {
     return categories.find((item) => item.id === categoryId);
   }
 
+  function applyDeleteModeStateToTable() {
+    const rows = Array.from(categoriesTableBody.querySelectorAll("tr[data-category-id]"));
+    rows.forEach((row) => {
+      const isSelected = isDeleteMode && row.dataset.categoryId === selectedDeleteCategoryId;
+      row.classList.toggle("row-selectable", isDeleteMode);
+      row.classList.toggle("row-selected", isSelected);
+    });
+
+    const editableCells = categoriesTableBody.querySelectorAll(".editable-cell");
+    editableCells.forEach((cell) => {
+      cell.setAttribute("contenteditable", isDeleteMode ? "false" : "true");
+    });
+  }
+
+  function updateDeleteButtonUi() {
+    if (!toggleDeleteCategoryModeBtn) {
+      return;
+    }
+
+    toggleDeleteCategoryModeBtn.classList.toggle("is-active", isDeleteMode);
+    toggleDeleteCategoryModeBtn.textContent = "DEL";
+
+    if (!isDeleteMode) {
+      toggleDeleteCategoryModeBtn.title = "Löschmodus starten";
+      toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Löschmodus starten");
+      return;
+    }
+
+    if (selectedDeleteCategoryId) {
+      toggleDeleteCategoryModeBtn.title = "Ausgewählte Zeile löschen";
+      toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Ausgewählte Zeile löschen");
+      return;
+    }
+
+    toggleDeleteCategoryModeBtn.title = "Löschmodus beenden";
+    toggleDeleteCategoryModeBtn.setAttribute("aria-label", "Löschmodus beenden");
+  }
+
+  function setDeleteMode(nextMode) {
+    isDeleteMode = nextMode;
+    if (!isDeleteMode) {
+      selectedDeleteCategoryId = "";
+    }
+    updateDeleteButtonUi();
+    applyDeleteModeStateToTable();
+  }
+
   function renderCategoryTable() {
     if (!categories.length) {
       categoriesTableBody.innerHTML =
         '<tr><td colspan="2"><div class="empty-state">Noch keine Kategorien vorhanden.</div></td></tr>';
+      selectedDeleteCategoryId = "";
+      applyDeleteModeStateToTable();
       return;
+    }
+
+    if (selectedDeleteCategoryId && !categories.some((item) => item.id === selectedDeleteCategoryId)) {
+      selectedDeleteCategoryId = "";
     }
 
     categoriesTableBody.innerHTML = categories
       .map((category) => {
+        const selectedClass = isDeleteMode && category.id === selectedDeleteCategoryId ? " row-selected" : "";
+        const selectableClass = isDeleteMode ? " row-selectable" : "";
         return `
-          <tr data-category-id="${category.id}">
+          <tr data-category-id="${category.id}" class="${selectableClass}${selectedClass}">
             <td class="editable-cell" contenteditable="true" data-field="name" spellcheck="false">${escapeHtml(category.name)}</td>
             <td class="editable-cell capitalize" contenteditable="true" data-field="type" spellcheck="false">${labelForType(category.type)}</td>
           </tr>
         `;
       })
       .join("");
+
+    applyDeleteModeStateToTable();
   }
 
   async function refreshCategories() {
@@ -104,20 +158,11 @@ export async function initCategoriesPage() {
   }
 
   async function ensureInitialCategories() {
-    if (categories.length) {
-      return;
+    const result = await ensureStarterCategories(user.uid);
+    categories = result.categories;
+    if (result.seeded) {
+      showToast("Standard-Kategorien wurden automatisch angelegt.");
     }
-
-    for (const item of familyDefaults) {
-      await createCategory(user.uid, {
-        name: item.name,
-        type: item.type,
-        parent_id: ""
-      });
-    }
-
-    categories = await getCategories(user.uid);
-    showToast("Standard-Kategorien wurden automatisch angelegt.");
   }
 
   async function saveCellUpdate(cell) {
@@ -176,6 +221,10 @@ export async function initCategoriesPage() {
   });
 
   categoriesTableBody.addEventListener("focusin", (event) => {
+    if (isDeleteMode) {
+      return;
+    }
+
     const cell = event.target.closest(".editable-cell");
     if (!cell) {
       return;
@@ -184,6 +233,10 @@ export async function initCategoriesPage() {
   });
 
   categoriesTableBody.addEventListener("keydown", (event) => {
+    if (isDeleteMode) {
+      return;
+    }
+
     const cell = event.target.closest(".editable-cell");
     if (!cell) {
       return;
@@ -196,6 +249,10 @@ export async function initCategoriesPage() {
   });
 
   categoriesTableBody.addEventListener("focusout", async (event) => {
+    if (isDeleteMode) {
+      return;
+    }
+
     const cell = event.target.closest(".editable-cell");
     if (!cell || isInlineSaving) {
       return;
@@ -213,6 +270,67 @@ export async function initCategoriesPage() {
       showToast(error.message || "Aktualisierung fehlgeschlagen.");
     } finally {
       isInlineSaving = false;
+    }
+  });
+
+  categoriesTableBody.addEventListener("click", (event) => {
+    if (!isDeleteMode) {
+      return;
+    }
+
+    const row = event.target.closest("tr[data-category-id]");
+    if (!row) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectedDeleteCategoryId = row.dataset.categoryId || "";
+    applyDeleteModeStateToTable();
+    updateDeleteButtonUi();
+  });
+
+  toggleDeleteCategoryModeBtn?.addEventListener("click", async () => {
+    await waitForInlineSaveIdle();
+
+    if (!isDeleteMode) {
+      setDeleteMode(true);
+      showToast("Löschmodus aktiv: Zeile antippen, dann DEL drücken.");
+      return;
+    }
+
+    if (!selectedDeleteCategoryId) {
+      setDeleteMode(false);
+      showToast("Löschmodus beendet.");
+      return;
+    }
+
+    const categoryId = selectedDeleteCategoryId;
+    const category = getCategoryById(categoryId);
+    if (!categoryId || !category) {
+      setDeleteMode(false);
+      showToast("Keine gültige Zeile ausgewählt.");
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Kategorie "${category.name}" wirklich löschen?`);
+    if (!confirmDelete) {
+      return;
+    }
+
+    toggleDeleteCategoryModeBtn.disabled = true;
+    try {
+      await deleteCategory(categoryId);
+      showToast("Kategorie gelöscht.");
+      selectedDeleteCategoryId = "";
+      await refreshCategories();
+      setDeleteMode(false);
+    } catch (error) {
+      showToast(error.message || "Kategorie konnte nicht gelöscht werden.");
+    } finally {
+      toggleDeleteCategoryModeBtn.disabled = false;
+      updateDeleteButtonUi();
+      applyDeleteModeStateToTable();
     }
   });
 
@@ -239,4 +357,5 @@ export async function initCategoriesPage() {
   await refreshCategories();
   await ensureInitialCategories();
   renderCategoryTable();
+  updateDeleteButtonUi();
 }

@@ -62,7 +62,12 @@
           </div>
         </section>
 
-        <button id="openAccountModalBtn" type="button" class="fab-btn" aria-label="Konto anlegen">+</button>
+        <div class="fab-actions">
+          <button id="toggleDeleteAccountModeBtn" type="button" class="fab-btn fab-btn-danger" aria-label="Löschmodus">
+            DEL
+          </button>
+          <button id="openAccountModalBtn" type="button" class="fab-btn" aria-label="Konto anlegen">+</button>
+        </div>
 
         <div id="accountModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
           <div class="app-modal-card">

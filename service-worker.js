@@ -1,4 +1,4 @@
-const CACHE_NAME = "finance-tracker-v6";
+const CACHE_NAME = "finance-tracker-v8";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
