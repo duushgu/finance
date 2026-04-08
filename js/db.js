@@ -34,11 +34,12 @@ function normalizeDate(dateStr) {
 }
 
 export function formatCurrency(amount) {
-  const formattedNumber = new Intl.NumberFormat("de-DE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(toNumber(amount));
-  return `${formattedNumber} ${APP_CURRENCY_SYMBOL}`;
+  const rounded = Math.round(toNumber(amount));
+  const sign = rounded < 0 ? "-" : "";
+  const grouped = Math.abs(rounded)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${sign}${grouped} ${APP_CURRENCY_SYMBOL}`;
 }
 
 function withId(snapshot) {

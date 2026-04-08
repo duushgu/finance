@@ -201,6 +201,14 @@ function renderExpenseChart(groupedExpenses) {
       plugins: {
         legend: {
           position: "bottom"
+        },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              const label = context.label ? `${context.label}: ` : "";
+              return `${label}${formatCurrency(context.parsed)}`;
+            }
+          }
         }
       }
     }
