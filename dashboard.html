@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Finance Tracker | Dashboard</title>
+    <title>Familien-Finanzen | Überblick</title>
     <meta name="theme-color" content="#0f8f67" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,18 +21,18 @@
       <aside class="hidden lg:flex lg:w-72 xl:w-80 p-5">
         <div class="card w-full p-5 flex flex-col gap-6">
           <header>
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Family Workspace</p>
-            <h1 class="font-display text-2xl font-semibold">Finance Tracker</h1>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Familien-Kasse</p>
+            <h1 class="font-display text-2xl font-semibold">Familien-Finanzplan</h1>
           </header>
           <nav class="space-y-2">
-            <a class="sidebar-link active" href="./dashboard.html">Dashboard</a>
-            <a class="sidebar-link" href="./accounts.html">Accounts</a>
-            <a class="sidebar-link" href="./transactions.html">Transactions</a>
-            <a class="sidebar-link" href="./categories.html">Categories</a>
+            <a class="sidebar-link active" href="./dashboard.html">Überblick</a>
+            <a class="sidebar-link" href="./accounts.html">Konten</a>
+            <a class="sidebar-link" href="./transactions.html">Buchungen</a>
+            <a class="sidebar-link" href="./categories.html">Kategorien</a>
           </nav>
           <div class="mt-auto space-y-3">
             <p id="currentUserEmail" class="text-xs text-slate-500 break-all"></p>
-            <button id="logoutBtn" class="btn btn-neutral w-full">Sign out</button>
+            <button id="logoutBtn" class="btn btn-neutral w-full">Abmelden</button>
           </div>
         </div>
       </aside>
@@ -40,62 +40,93 @@
       <main class="flex-1 page-main p-4 lg:p-8 space-y-6">
         <header class="card p-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p class="text-sm text-slate-500">Overview</p>
-            <h2 class="font-display text-2xl font-semibold">This Month Summary</h2>
+            <p class="text-sm text-slate-500">Heute wichtig</p>
+            <h2 class="font-display text-2xl font-semibold">Einfacher Familien-Überblick</h2>
           </div>
-          <a href="./transactions.html" class="btn btn-primary">+ Add Transaction</a>
+          <div class="flex flex-wrap gap-2">
+            <a href="./transactions.html?quick=food" class="btn btn-neutral">+ Lebensmittel</a>
+            <a href="./transactions.html?quick=kids" class="btn btn-neutral">+ Kinder</a>
+            <a href="./transactions.html" class="btn btn-primary">+ Buchung</a>
+          </div>
         </header>
 
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <article class="card p-4">
-            <p class="card-title">Income</p>
+            <p class="card-title">Einnahmen (Monat)</p>
             <p id="monthIncome" class="stat-value text-emerald-700">€0.00</p>
           </article>
           <article class="card p-4">
-            <p class="card-title">Expenses</p>
+            <p class="card-title">Ausgaben (Monat)</p>
             <p id="monthExpense" class="stat-value text-rose-700">€0.00</p>
           </article>
           <article class="card p-4">
-            <p class="card-title">Net</p>
+            <p class="card-title">Noch übrig (Monat)</p>
             <p id="monthNet" class="stat-value text-slate-900">€0.00</p>
+          </article>
+          <article class="card p-4">
+            <p class="card-title">Ausgaben (diese Woche)</p>
+            <p id="weekExpense" class="stat-value text-amber-700">€0.00</p>
           </article>
         </section>
 
-        <section class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <section class="grid grid-cols-1 xl:grid-cols-3 gap-5">
           <article class="card p-5">
             <header class="mb-3 flex items-center justify-between">
-              <h3 class="font-display text-lg font-semibold">Account Balances</h3>
-              <a class="text-sm font-semibold text-emerald-700" href="./accounts.html">Manage</a>
+              <h3 class="font-display text-lg font-semibold">Kontostände</h3>
+              <a class="text-sm font-semibold text-emerald-700" href="./accounts.html">Bearbeiten</a>
             </header>
             <div id="dashboardAccountBalances" class="space-y-2"></div>
           </article>
 
+          <article class="card p-5 space-y-3">
+            <header>
+              <h3 class="font-display text-lg font-semibold">Budget-Ampel</h3>
+              <p class="text-sm text-slate-500">Klarer Status statt komplizierter Zahlen</p>
+            </header>
+            <p id="budgetStatusLabel" class="font-display text-2xl font-semibold text-slate-900">Im Plan</p>
+            <p id="budgetStatusHint" class="text-sm text-slate-600">Ausgaben sind im grünen Bereich.</p>
+            <div class="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div id="budgetStatusBar" class="h-full rounded-full bg-emerald-500 w-0"></div>
+            </div>
+            <p id="budgetStatusDetail" class="text-xs text-slate-500"></p>
+          </article>
+
           <article class="card p-5">
             <header class="mb-4">
-              <h3 class="font-display text-lg font-semibold">Expenses by Category</h3>
-              <p class="text-sm text-slate-500">Current month breakdown</p>
+              <h3 class="font-display text-lg font-semibold">Familien-Ziele</h3>
+              <p class="text-sm text-slate-500">Fokus auf Hochzeit, Notgroschen und Kinder</p>
             </header>
-            <div class="h-72">
-              <canvas id="expenseChart"></canvas>
+            <div id="goalRows" class="space-y-3">
+              <div class="empty-state">Noch keine Daten für Ziele.</div>
             </div>
           </article>
         </section>
 
         <section class="card p-5">
+          <header class="mb-4">
+            <h3 class="font-display text-lg font-semibold">Ausgaben nach Kategorie</h3>
+            <p class="text-sm text-slate-500">Aktueller Monat</p>
+          </header>
+          <div class="h-72">
+            <canvas id="expenseChart"></canvas>
+          </div>
+        </section>
+
+        <section class="card p-5">
           <header class="mb-3 flex items-center justify-between gap-2">
-            <h3 class="font-display text-lg font-semibold">Recent Transactions</h3>
-            <a class="text-sm font-semibold text-emerald-700" href="./transactions.html">Open all</a>
+            <h3 class="font-display text-lg font-semibold">Letzte Buchungen</h3>
+            <a class="text-sm font-semibold text-emerald-700" href="./transactions.html">Alle anzeigen</a>
           </header>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Account</th>
-                  <th>Category</th>
-                  <th>Note</th>
+                  <th>Datum</th>
+                  <th>Typ</th>
+                  <th>Betrag</th>
+                  <th>Konto</th>
+                  <th>Kategorie</th>
+                  <th>Notiz</th>
                 </tr>
               </thead>
               <tbody id="recentTransactionsBody"></tbody>
@@ -107,10 +138,10 @@
 
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-emerald-100 bg-white/95 backdrop-blur">
       <div class="max-w-md mx-auto grid grid-cols-4 px-2 py-2 gap-1">
-        <a href="./dashboard.html" class="mobile-link active">Home</a>
-        <a href="./transactions.html" class="mobile-link">Txns</a>
-        <a href="./accounts.html" class="mobile-link">Accounts</a>
-        <a href="./categories.html" class="mobile-link">Categories</a>
+        <a href="./dashboard.html" class="mobile-link active">Start</a>
+        <a href="./transactions.html" class="mobile-link">Buchung</a>
+        <a href="./accounts.html" class="mobile-link">Konten</a>
+        <a href="./categories.html" class="mobile-link">Kategorien</a>
       </div>
     </nav>
 

@@ -13,11 +13,30 @@ import {
 
 let expenseChart;
 
+function toDate(dateStr) {
+  return new Date(`${dateStr}T00:00:00`);
+}
+
+function getWeekRange() {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(now.getDate() + diffToMonday);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
 function renderAccountBalances(accounts) {
   const container = document.getElementById("dashboardAccountBalances");
 
   if (!accounts.length) {
-    container.innerHTML = '<div class="empty-state">No accounts found. Create one in Accounts.</div>';
+    container.innerHTML = '<div class="empty-state">Keine Konten gefunden. Lege zuerst ein Konto an.</div>';
     return;
   }
 
@@ -42,12 +61,95 @@ function renderSummary(summary, currency) {
   document.getElementById("monthNet").textContent = formatCurrency(summary.net, currency);
 }
 
+function renderWeekExpense(transactions, currency) {
+  const { start, end } = getWeekRange();
+
+  const weekExpense = transactions
+    .filter((item) => item.type === "expense" && item.date)
+    .filter((item) => {
+      const date = toDate(item.date);
+      return date >= start && date <= end;
+    })
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  document.getElementById("weekExpense").textContent = formatCurrency(weekExpense, currency);
+}
+
+function renderBudgetStatus(summary) {
+  const label = document.getElementById("budgetStatusLabel");
+  const hint = document.getElementById("budgetStatusHint");
+  const detail = document.getElementById("budgetStatusDetail");
+  const bar = document.getElementById("budgetStatusBar");
+
+  const income = Number(summary.incomeTotal || 0);
+  const expense = Number(summary.expenseTotal || 0);
+
+  const ratio = income > 0 ? expense / income : expense > 0 ? 1.5 : 0;
+  const ratioPercent = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+  bar.style.width = `${ratioPercent}%`;
+
+  if (ratio <= 0.8) {
+    label.textContent = "Grün: im Plan";
+    hint.textContent = "Ausgaben sind im sicheren Bereich.";
+    bar.className = "h-full rounded-full bg-emerald-500";
+  } else if (ratio <= 1) {
+    label.textContent = "Gelb: eng";
+    hint.textContent = "Monat wird knapp. Bitte auf kleine Ausgaben achten.";
+    bar.className = "h-full rounded-full bg-amber-500";
+  } else {
+    label.textContent = "Rot: drüber";
+    hint.textContent = "Ausgaben sind höher als Einnahmen.";
+    bar.className = "h-full rounded-full bg-rose-600";
+  }
+
+  detail.textContent = `Ausgabenquote: ${ratioPercent}% vom Monatseinkommen`;
+}
+
+function renderFamilyGoals(transactions, categories, currency) {
+  const container = document.getElementById("goalRows");
+  const monthKey = getMonthKey();
+
+  const goals = [
+    { label: "Hochzeit", target: 5000, keywords: ["hochzeit"] },
+    { label: "Notgroschen", target: 3000, keywords: ["notgroschen", "sparen", "reserve"] },
+    { label: "Kinder", target: 1500, keywords: ["kinder", "schule", "baby"] }
+  ];
+
+  const categoryMap = Object.fromEntries(categories.map((item) => [item.id, item.name?.toLowerCase() || ""]));
+
+  const rows = goals.map((goal) => {
+    const spent = transactions
+      .filter((item) => item.type === "expense" && (item.date || "").startsWith(monthKey))
+      .filter((item) => {
+        const categoryName = categoryMap[item.category_id] || "";
+        return goal.keywords.some((keyword) => categoryName.includes(keyword));
+      })
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+    const progress = Math.max(0, Math.min(100, Math.round((spent / goal.target) * 100)));
+
+    return `
+      <div class="rounded-xl border border-emerald-100 p-3 bg-white/80">
+        <div class="flex items-center justify-between gap-3">
+          <p class="font-semibold">${goal.label}</p>
+          <p class="text-sm text-slate-600">${formatCurrency(spent, currency)} / ${formatCurrency(goal.target, currency)}</p>
+        </div>
+        <div class="mt-2 h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+          <div class="h-full rounded-full bg-emerald-500" style="width:${progress}%"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = rows.join("");
+}
+
 function renderExpenseChart(groupedExpenses) {
   const canvas = document.getElementById("expenseChart");
   const hasChartLib = typeof window.Chart !== "undefined";
 
   if (!hasChartLib) {
-    canvas.parentElement.innerHTML = '<div class="empty-state">Chart library unavailable.</div>';
+    canvas.parentElement.innerHTML = '<div class="empty-state">Chart-Bibliothek nicht verfügbar.</div>';
     return;
   }
 
@@ -59,7 +161,7 @@ function renderExpenseChart(groupedExpenses) {
     expenseChart = new window.Chart(canvas, {
       type: "doughnut",
       data: {
-        labels: ["No Expenses"],
+        labels: ["Keine Ausgaben"],
         datasets: [
           {
             data: [1],
@@ -109,7 +211,7 @@ function renderRecentTransactions(recentTransactions, accounts, categories) {
   const body = document.getElementById("recentTransactionsBody");
 
   if (!recentTransactions.length) {
-    body.innerHTML = '<tr><td colspan="6"><div class="empty-state">No transactions recorded yet.</div></td></tr>';
+    body.innerHTML = '<tr><td colspan="6"><div class="empty-state">Noch keine Buchungen vorhanden.</div></td></tr>';
     return;
   }
 
@@ -118,6 +220,8 @@ function renderRecentTransactions(recentTransactions, accounts, categories) {
 
   body.innerHTML = recentTransactions
     .map((transaction) => {
+      const typeLabel =
+        transaction.type === "expense" ? "Ausgabe" : transaction.type === "income" ? "Einnahme" : "Transfer";
       const typeClass =
         transaction.type === "expense"
           ? "type-expense"
@@ -146,7 +250,7 @@ function renderRecentTransactions(recentTransactions, accounts, categories) {
       return `
         <tr>
           <td>${transaction.date || "-"}</td>
-          <td><span class="type-chip ${typeClass}">${transaction.type}</span></td>
+          <td><span class="type-chip ${typeClass}">${typeLabel}</span></td>
           <td class="font-semibold">${amountLabel}</td>
           <td>${accountLabel}</td>
           <td>${categoryMap[transaction.category_id]?.name || "-"}</td>
@@ -178,6 +282,9 @@ export async function initDashboard() {
 
   renderAccountBalances(accountsWithBalances);
   renderSummary(summary, defaultCurrency);
+  renderWeekExpense(transactions, defaultCurrency);
+  renderBudgetStatus(summary);
+  renderFamilyGoals(transactions, categories, defaultCurrency);
   renderExpenseChart(expensesByCategory);
   renderRecentTransactions(recentTransactions, accounts, categories);
 }

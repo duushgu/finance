@@ -9,11 +9,24 @@ export async function initCategoriesPage() {
   const categoryForm = document.getElementById("categoryForm");
   const parentSelect = document.getElementById("categoryParent");
   const categoriesTableBody = document.getElementById("categoriesTableBody");
+  const installFamilyCategoriesBtn = document.getElementById("installFamilyCategories");
 
   let categories = [];
+  const familyDefaults = [
+    { name: "Miete/Wohnen", type: "expense" },
+    { name: "Strom/Internet/Versicherung", type: "expense" },
+    { name: "Lebensmittel", type: "expense" },
+    { name: "Kinder", type: "expense" },
+    { name: "Sprit/Transport", type: "expense" },
+    { name: "Arbeit/Werkzeug", type: "expense" },
+    { name: "Gesundheit", type: "expense" },
+    { name: "Hochzeit", type: "expense" },
+    { name: "Notgroschen", type: "expense" },
+    { name: "Lohn", type: "income" }
+  ];
 
   function renderParentOptions() {
-    const options = ['<option value="">No parent</option>'];
+    const options = ['<option value="">Keine Oberkategorie</option>'];
 
     categories.forEach((category) => {
       options.push(`<option value="${category.id}">${category.name}</option>`);
@@ -25,7 +38,7 @@ export async function initCategoriesPage() {
   function renderCategoryTable() {
     if (!categories.length) {
       categoriesTableBody.innerHTML =
-        '<tr><td colspan="3"><div class="empty-state">No categories yet. Add your first category.</div></td></tr>';
+        '<tr><td colspan="3"><div class="empty-state">Noch keine Kategorien vorhanden.</div></td></tr>';
       return;
     }
 
@@ -36,7 +49,7 @@ export async function initCategoriesPage() {
         return `
           <tr>
             <td>${category.name}</td>
-            <td class="capitalize">${category.type}</td>
+            <td class="capitalize">${category.type === "expense" ? "Ausgabe" : category.type === "income" ? "Einnahme" : "Beides"}</td>
             <td>${categoryMap[category.parent_id] || "-"}</td>
           </tr>
         `;
@@ -58,7 +71,7 @@ export async function initCategoriesPage() {
     const parent_id = parentSelect.value;
 
     if (!name) {
-      showToast("Category name is required.");
+      showToast("Bitte Name eingeben.");
       return;
     }
 
@@ -66,7 +79,24 @@ export async function initCategoriesPage() {
 
     categoryForm.reset();
     document.getElementById("categoryType").value = "expense";
-    showToast("Category added.");
+    showToast("Kategorie gespeichert.");
+    await refreshCategories();
+  });
+
+  installFamilyCategoriesBtn.addEventListener("click", async () => {
+    const existingNames = new Set(categories.map((item) => item.name.toLowerCase()));
+    const missing = familyDefaults.filter((item) => !existingNames.has(item.name.toLowerCase()));
+
+    if (!missing.length) {
+      showToast("Standard-Kategorien sind schon vorhanden.");
+      return;
+    }
+
+    for (const item of missing) {
+      await createCategory(user.uid, { name: item.name, type: item.type, parent_id: "" });
+    }
+
+    showToast(`${missing.length} Standard-Kategorien angelegt.`);
     await refreshCategories();
   });
 

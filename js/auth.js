@@ -75,30 +75,30 @@ export async function setupLoginPage() {
   }
 
   if (!isFirebaseConfigured) {
-    statusEl.textContent = "Firebase config placeholders are still set. Update js/firebase.js first.";
+    statusEl.textContent = "Firebase-Konfiguration fehlt noch. Bitte zuerst js/firebase.js prüfen.";
     statusEl.className = "text-sm text-amber-700 text-center";
     if (setupChecklist) {
       setupChecklist.open = true;
     }
   } else if (setupChecklist) {
     setupChecklist.classList.add("hidden");
-    statusEl.textContent = "Firebase setup detected. You can sign in now.";
+    statusEl.textContent = "Setup erkannt. Anmeldung ist bereit.";
     statusEl.className = "text-sm text-emerald-700 text-center";
   }
 
   loginBtn.addEventListener("click", async () => {
     try {
       loginBtn.disabled = true;
-      loginBtn.textContent = "Signing in...";
+      loginBtn.textContent = "Anmeldung läuft...";
       const credential = await signInWithPopup(auth, googleProvider);
       await syncUserDocument(credential.user);
       window.location.href = "./dashboard.html";
     } catch (error) {
       console.error("Google sign in failed:", error);
-      statusEl.textContent = error.message || "Google login failed.";
+      statusEl.textContent = error.message || "Google-Anmeldung fehlgeschlagen.";
       statusEl.className = "text-sm text-rose-700 text-center";
       loginBtn.disabled = false;
-      loginBtn.textContent = "Sign in with Google";
+      loginBtn.textContent = "Mit Google anmelden";
     }
   });
 

@@ -21,7 +21,7 @@ export async function initAccountsPage() {
 
     if (!accountsWithBalance.length) {
       accountsTableBody.innerHTML =
-        '<tr><td colspan="4"><div class="empty-state">No accounts yet. Create your first account.</div></td></tr>';
+        '<tr><td colspan="4"><div class="empty-state">Noch kein Konto vorhanden. Bitte zuerst ein Konto anlegen.</div></td></tr>';
       return;
     }
 
@@ -47,7 +47,7 @@ export async function initAccountsPage() {
     const initialBalance = document.getElementById("accountInitialBalance").value;
 
     if (!name) {
-      showToast("Account name is required.");
+      showToast("Bitte Kontonamen eingeben.");
       return;
     }
 
@@ -61,7 +61,7 @@ export async function initAccountsPage() {
     document.getElementById("accountCurrency").value = "EUR";
     document.getElementById("accountInitialBalance").value = "0";
 
-    showToast("Account created.");
+    showToast("Konto gespeichert.");
     await renderAccounts();
   });
 

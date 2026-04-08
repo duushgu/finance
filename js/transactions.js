@@ -9,13 +9,39 @@ import {
   getTransactions
 } from "./db.js";
 
+function toDate(dateStr) {
+  return new Date(`${dateStr}T00:00:00`);
+}
+
+function getWeekRange() {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(now.getDate() + diffToMonday);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+const QUICK_TEMPLATES = {
+  food: { label: "Lebensmittel", keywords: ["lebensmittel", "food"], note: "Wocheneinkauf" },
+  kids: { label: "Kinder", keywords: ["kinder", "kind", "schule"], note: "Kinder" },
+  fuel: { label: "Sprit/Auto", keywords: ["sprit", "transport", "auto"], note: "Sprit" },
+  work: { label: "Arbeit/Werkzeug", keywords: ["arbeit", "werkzeug"], note: "Arbeit" }
+};
+
 function renderTypeChip(type) {
   if (type === "expense") {
-    return '<span class="type-chip type-expense">Expense</span>';
+    return '<span class="type-chip type-expense">Ausgabe</span>';
   }
 
   if (type === "income") {
-    return '<span class="type-chip type-income">Income</span>';
+    return '<span class="type-chip type-income">Einnahme</span>';
   }
 
   return '<span class="type-chip type-transfer">Transfer</span>';
@@ -32,10 +58,14 @@ export async function initTransactionsPage() {
   const expenseForm = document.getElementById("expenseForm");
   const incomeForm = document.getElementById("incomeForm");
   const transferForm = document.getElementById("transferForm");
+  const quickButtons = document.querySelectorAll(".quick-template-btn");
+  const filterThisWeek = document.getElementById("filterThisWeek");
+  const filterThisMonth = document.getElementById("filterThisMonth");
 
   let accounts = [];
   let categories = [];
   let transactions = [];
+  let listMode = "month";
 
   function setDefaultDates() {
     const today = getTodayDateString();
@@ -54,7 +84,7 @@ export async function initTransactionsPage() {
       .map((category) => `<option value="${category.id}">${category.name}</option>`)
       .join("");
     const incomeCategoryOptions = [
-      '<option value="">No category</option>',
+      '<option value="">Keine Kategorie</option>',
       ...incomeCategories.map((category) => `<option value="${category.id}">${category.name}</option>`)
     ].join("");
 
@@ -73,14 +103,25 @@ export async function initTransactionsPage() {
 
     const monthKey = monthFilter.value || getMonthKey();
     const filtered = transactions.filter((transaction) => (transaction.date || "").startsWith(monthKey));
+    const weekRange = getWeekRange();
+    const finalRows =
+      listMode === "week"
+        ? transactions.filter((transaction) => {
+            if (!transaction.date) {
+              return false;
+            }
+            const date = toDate(transaction.date);
+            return date >= weekRange.start && date <= weekRange.end;
+          })
+        : filtered;
 
-    if (!filtered.length) {
+    if (!finalRows.length) {
       transactionTableBody.innerHTML =
-        '<tr><td colspan="6"><div class="empty-state">No transactions in this month.</div></td></tr>';
+        '<tr><td colspan="6"><div class="empty-state">Keine Buchungen in diesem Zeitraum.</div></td></tr>';
       return;
     }
 
-    transactionTableBody.innerHTML = filtered
+    transactionTableBody.innerHTML = finalRows
       .map((transaction) => {
         const type = transaction.type;
         const amount = Number(transaction.transfer_amount || transaction.amount || 0);
@@ -133,6 +174,42 @@ export async function initTransactionsPage() {
     renderTransactionTable();
   }
 
+  function applyQuickTemplate(key) {
+    const template = QUICK_TEMPLATES[key];
+    if (!template) {
+      return;
+    }
+
+    const expenseCategory = document.getElementById("expenseCategory");
+    const expenseAccount = document.getElementById("expenseAccount");
+    const expenseNote = document.getElementById("expenseNote");
+    const expenseAmount = document.getElementById("expenseAmount");
+
+    const match = categories.find((category) => {
+      const name = (category.name || "").toLowerCase();
+      return template.keywords.some((keyword) => name.includes(keyword));
+    });
+
+    if (match) {
+      expenseCategory.value = match.id;
+    }
+
+    if (accounts[0]) {
+      expenseAccount.value = accounts[0].id;
+    }
+
+    expenseNote.value = template.note;
+    expenseAmount.focus();
+    showToast(`Schnellbuchung: ${template.label}`);
+  }
+
+  function applyQuickTemplateFromUrl() {
+    const quick = new URLSearchParams(window.location.search).get("quick");
+    if (quick && QUICK_TEMPLATES[quick]) {
+      applyQuickTemplate(quick);
+    }
+  }
+
   expenseForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -147,7 +224,7 @@ export async function initTransactionsPage() {
 
     expenseForm.reset();
     document.getElementById("expenseDate").value = getTodayDateString();
-    showToast("Expense saved.");
+    showToast("Ausgabe gespeichert.");
     await refreshData();
   });
 
@@ -165,7 +242,7 @@ export async function initTransactionsPage() {
 
     incomeForm.reset();
     document.getElementById("incomeDate").value = getTodayDateString();
-    showToast("Income saved.");
+    showToast("Einnahme gespeichert.");
     await refreshData();
   });
 
@@ -176,7 +253,7 @@ export async function initTransactionsPage() {
     const toAccount = document.getElementById("transferToAccount").value;
 
     if (!fromAccount || !toAccount || fromAccount === toAccount) {
-      showToast("Please select two different accounts.");
+      showToast("Bitte zwei verschiedene Konten auswählen.");
       return;
     }
 
@@ -191,14 +268,32 @@ export async function initTransactionsPage() {
 
     transferForm.reset();
     document.getElementById("transferDate").value = getTodayDateString();
-    showToast("Transfer saved.");
+    showToast("Transfer gespeichert.");
     await refreshData();
   });
 
   monthFilter.addEventListener("change", () => {
+    listMode = "month";
+    renderTransactionTable();
+  });
+
+  quickButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      applyQuickTemplate(button.dataset.template);
+    });
+  });
+
+  filterThisWeek.addEventListener("click", () => {
+    listMode = "week";
+    renderTransactionTable();
+  });
+
+  filterThisMonth.addEventListener("click", () => {
+    listMode = "month";
     renderTransactionTable();
   });
 
   setDefaultDates();
   await refreshData();
+  applyQuickTemplateFromUrl();
 }
