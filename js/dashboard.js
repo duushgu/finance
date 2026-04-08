@@ -13,25 +13,6 @@ import {
 
 let expenseChart;
 
-function toDate(dateStr) {
-  return new Date(`${dateStr}T00:00:00`);
-}
-
-function getWeekRange() {
-  const now = new Date();
-  const day = now.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(now.getDate() + diffToMonday);
-
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
-}
-
 function renderAccountBalances(accounts) {
   const container = document.getElementById("dashboardAccountBalances");
 
@@ -59,20 +40,6 @@ function renderSummary(summary) {
   document.getElementById("monthIncome").textContent = formatCurrency(summary.incomeTotal);
   document.getElementById("monthExpense").textContent = formatCurrency(summary.expenseTotal);
   document.getElementById("monthNet").textContent = formatCurrency(summary.net);
-}
-
-function renderWeekExpense(transactions) {
-  const { start, end } = getWeekRange();
-
-  const weekExpense = transactions
-    .filter((item) => item.type === "expense" && item.date)
-    .filter((item) => {
-      const date = toDate(item.date);
-      return date >= start && date <= end;
-    })
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
-  document.getElementById("weekExpense").textContent = formatCurrency(weekExpense);
 }
 
 function renderBudgetStatus(summary) {
@@ -286,7 +253,6 @@ export async function initDashboard() {
 
   renderAccountBalances(accountsWithBalances);
   renderSummary(summary);
-  renderWeekExpense(transactions);
   renderBudgetStatus(summary);
   renderFamilyGoals(transactions, categories);
   renderExpenseChart(expensesByCategory);
