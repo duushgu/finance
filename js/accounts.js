@@ -14,6 +14,18 @@ export async function initAccountsPage() {
 
   const accountForm = document.getElementById("accountForm");
   const accountsTableBody = document.getElementById("accountsTableBody");
+  const accountModal = document.getElementById("accountModal");
+  const openAccountModalBtn = document.getElementById("openAccountModalBtn");
+  const closeAccountModalBtn = document.getElementById("closeAccountModalBtn");
+
+  function openAccountModal() {
+    accountModal.classList.remove("hidden");
+    document.getElementById("accountName").focus();
+  }
+
+  function closeAccountModal() {
+    accountModal.classList.add("hidden");
+  }
 
   async function renderAccounts() {
     const [accounts, transactions] = await Promise.all([getAccounts(user.uid), getTransactions(user.uid)]);
@@ -37,6 +49,21 @@ export async function initAccountsPage() {
       .join("");
   }
 
+  openAccountModalBtn.addEventListener("click", openAccountModal);
+  closeAccountModalBtn.addEventListener("click", closeAccountModal);
+
+  accountModal.addEventListener("click", (event) => {
+    if (event.target === accountModal) {
+      closeAccountModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !accountModal.classList.contains("hidden")) {
+      closeAccountModal();
+    }
+  });
+
   accountForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -55,7 +82,7 @@ export async function initAccountsPage() {
 
     accountForm.reset();
     document.getElementById("accountInitialBalance").value = "0";
-
+    closeAccountModal();
     showToast("Konto gespeichert.");
     await renderAccounts();
   });

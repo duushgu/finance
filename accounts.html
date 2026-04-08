@@ -45,23 +45,6 @@
         </header>
 
         <section class="card p-5">
-          <h3 class="font-display text-lg font-semibold mb-4">Konto anlegen</h3>
-          <form id="accountForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <label class="space-y-1">
-              <span class="text-sm font-semibold">Name</span>
-              <input class="form-input" id="accountName" required placeholder="Hauptkonto" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-sm font-semibold">Startguthaben</span>
-              <input class="form-input" id="accountInitialBalance" type="number" step="0.01" inputmode="decimal" value="0" required />
-            </label>
-            <div class="flex items-end">
-              <button class="btn btn-primary w-full" type="submit">+ Konto speichern</button>
-            </div>
-          </form>
-        </section>
-
-        <section class="card p-5">
           <header class="mb-3">
             <h3 class="font-display text-lg font-semibold">Kontenübersicht</h3>
             <p class="text-sm text-slate-500">Kontostände werden automatisch aus Buchungen berechnet.</p>
@@ -78,6 +61,28 @@
             </table>
           </div>
         </section>
+
+        <button id="openAccountModalBtn" type="button" class="fab-btn" aria-label="Konto anlegen">+</button>
+
+        <div id="accountModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="accountModalTitle" class="font-display text-lg font-semibold">Konto anlegen</h3>
+              <button id="closeAccountModalBtn" type="button" class="modal-close-btn" aria-label="Schließen">×</button>
+            </header>
+            <form id="accountForm" class="space-y-3">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Name</span>
+                <input class="form-input" id="accountName" required placeholder="Hauptkonto" />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Startguthaben</span>
+                <input class="form-input" id="accountInitialBalance" type="number" step="0.01" inputmode="decimal" value="0" required />
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Konto speichern</button>
+            </form>
+          </div>
+        </div>
       </main>
     </div>
 

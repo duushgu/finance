@@ -43,34 +43,6 @@
         </header>
 
         <section class="card p-5">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <h3 class="font-display text-lg font-semibold">Kategorie hinzufügen</h3>
-            <button id="installFamilyCategories" type="button" class="btn btn-neutral">Standard-Kategorien anlegen</button>
-          </div>
-          <form id="categoryForm" class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <label class="space-y-1">
-              <span class="text-sm font-semibold">Name</span>
-              <input id="categoryName" class="form-input" required placeholder="Lebensmittel" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-sm font-semibold">Typ</span>
-              <select id="categoryType" class="form-select" required>
-                <option value="expense">Ausgabe</option>
-                <option value="income">Einnahme</option>
-                <option value="both">Beides</option>
-              </select>
-            </label>
-            <label class="space-y-1">
-              <span class="text-sm font-semibold">Oberkategorie (optional)</span>
-              <select id="categoryParent" class="form-select"></select>
-            </label>
-            <div class="flex items-end">
-              <button class="btn btn-primary w-full" type="submit">+ Kategorie speichern</button>
-            </div>
-          </form>
-        </section>
-
-        <section class="card p-5">
           <header class="mb-3">
             <h3 class="font-display text-lg font-semibold">Kategorienliste</h3>
           </header>
@@ -80,13 +52,38 @@
                 <tr>
                   <th>Name</th>
                   <th>Typ</th>
-                  <th>Oberkategorie</th>
                 </tr>
               </thead>
               <tbody id="categoriesTableBody"></tbody>
             </table>
           </div>
         </section>
+
+        <button id="openCategoryModalBtn" type="button" class="fab-btn" aria-label="Kategorie hinzufügen">+</button>
+
+        <div id="categoryModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="categoryModalTitle" class="font-display text-lg font-semibold">Kategorie hinzufügen</h3>
+              <button id="closeCategoryModalBtn" type="button" class="modal-close-btn" aria-label="Schließen">×</button>
+            </header>
+            <form id="categoryForm" class="space-y-3">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Name</span>
+                <input id="categoryName" class="form-input" required placeholder="Lebensmittel" />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Typ</span>
+                <select id="categoryType" class="form-select" required>
+                  <option value="expense">Ausgabe</option>
+                  <option value="income">Einnahme</option>
+                  <option value="both">Beides</option>
+                </select>
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Kategorie speichern</button>
+            </form>
+          </div>
+        </div>
       </main>
     </div>
 

@@ -31,6 +31,31 @@ function getWeekRange() {
   return { start, end };
 }
 
+function parseCompactAmountInput(rawValue) {
+  const compact = String(rawValue || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+  if (!compact) {
+    return Number.NaN;
+  }
+
+  const normalized = compact.replace(",", ".");
+  const match = normalized.match(/^(-?\d+(?:\.\d+)?)(k)?$/);
+  if (!match) {
+    return Number.NaN;
+  }
+
+  const base = Number(match[1]);
+  if (!Number.isFinite(base)) {
+    return Number.NaN;
+  }
+
+  const expanded = match[2] ? base * 1000 : base;
+  return Math.round(expanded);
+}
+
 function renderTypeChip(type) {
   if (type === "expense") {
     return '<span class="type-chip type-expense">Ausgabe</span>';
@@ -57,11 +82,38 @@ export async function initTransactionsPage() {
   const filterThisWeek = document.getElementById("filterThisWeek");
   const filterThisMonth = document.getElementById("filterThisMonth");
 
+  const expenseModal = document.getElementById("expenseModal");
+  const incomeModal = document.getElementById("incomeModal");
+  const transferModal = document.getElementById("transferModal");
+  const openExpenseModalBtn = document.getElementById("openExpenseModalBtn");
+  const openIncomeModalBtn = document.getElementById("openIncomeModalBtn");
+  const openTransferModalBtn = document.getElementById("openTransferModalBtn");
+  const closeExpenseModalBtn = document.getElementById("closeExpenseModalBtn");
+  const closeIncomeModalBtn = document.getElementById("closeIncomeModalBtn");
+  const closeTransferModalBtn = document.getElementById("closeTransferModalBtn");
+
   let accounts = [];
   let categories = [];
   let transactions = [];
   let listMode = "month";
   let defaultExpenseCategoryId = "";
+
+  function openModal(modal, firstFieldId) {
+    modal.classList.remove("hidden");
+    if (firstFieldId) {
+      document.getElementById(firstFieldId)?.focus();
+    }
+  }
+
+  function closeModal(modal) {
+    modal.classList.add("hidden");
+  }
+
+  function closeAllModals() {
+    [expenseModal, incomeModal, transferModal].forEach((modal) => {
+      modal.classList.add("hidden");
+    });
+  }
 
   function findDefaultExpenseCategoryId(list) {
     const match = list.find((item) => {
@@ -196,8 +248,36 @@ export async function initTransactionsPage() {
     renderTransactionTable();
   }
 
+  openExpenseModalBtn.addEventListener("click", () => openModal(expenseModal, "expenseAmount"));
+  openIncomeModalBtn.addEventListener("click", () => openModal(incomeModal, "incomeAmount"));
+  openTransferModalBtn.addEventListener("click", () => openModal(transferModal, "transferAmount"));
+
+  closeExpenseModalBtn.addEventListener("click", () => closeModal(expenseModal));
+  closeIncomeModalBtn.addEventListener("click", () => closeModal(incomeModal));
+  closeTransferModalBtn.addEventListener("click", () => closeModal(transferModal));
+
+  [expenseModal, incomeModal, transferModal].forEach((modal) => {
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        closeModal(modal);
+      }
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAllModals();
+    }
+  });
+
   expenseForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    const amount = parseCompactAmountInput(document.getElementById("expenseAmount").value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showToast("Ungültiger Betrag. Beispiel: 25000 oder 25k.");
+      return;
+    }
 
     const selectedExpenseCategory =
       document.getElementById("expenseCategory").value || defaultExpenseCategoryId || null;
@@ -209,7 +289,7 @@ export async function initTransactionsPage() {
     await createTransaction(user.uid, {
       type: "expense",
       date: document.getElementById("expenseDate").value,
-      amount: document.getElementById("expenseAmount").value,
+      amount,
       category_id: selectedExpenseCategory,
       account_id: document.getElementById("expenseAccount").value,
       note: document.getElementById("expenseNote").value
@@ -218,6 +298,7 @@ export async function initTransactionsPage() {
     expenseForm.reset();
     document.getElementById("expenseDate").value = getTodayDateString();
     document.getElementById("expenseCategory").value = defaultExpenseCategoryId || "";
+    closeModal(expenseModal);
     showToast("Ausgabe gespeichert.");
     await refreshData();
   });
@@ -225,10 +306,16 @@ export async function initTransactionsPage() {
   incomeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    const amount = parseCompactAmountInput(document.getElementById("incomeAmount").value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showToast("Ungültiger Betrag. Beispiel: 25000 oder 25k.");
+      return;
+    }
+
     await createTransaction(user.uid, {
       type: "income",
       date: document.getElementById("incomeDate").value,
-      amount: document.getElementById("incomeAmount").value,
+      amount,
       category_id: document.getElementById("incomeCategory").value || null,
       account_id: document.getElementById("incomeAccount").value,
       note: document.getElementById("incomeNote").value
@@ -236,12 +323,19 @@ export async function initTransactionsPage() {
 
     incomeForm.reset();
     document.getElementById("incomeDate").value = getTodayDateString();
+    closeModal(incomeModal);
     showToast("Einnahme gespeichert.");
     await refreshData();
   });
 
   transferForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    const amount = parseCompactAmountInput(document.getElementById("transferAmount").value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showToast("Ungültiger Betrag. Beispiel: 25000 oder 25k.");
+      return;
+    }
 
     const fromAccount = document.getElementById("transferFromAccount").value;
     const toAccount = document.getElementById("transferToAccount").value;
@@ -254,7 +348,7 @@ export async function initTransactionsPage() {
     await createTransaction(user.uid, {
       type: "transfer",
       date: document.getElementById("transferDate").value,
-      transfer_amount: document.getElementById("transferAmount").value,
+      transfer_amount: amount,
       from_account_id: fromAccount,
       to_account_id: toAccount,
       note: document.getElementById("transferNote").value
@@ -262,6 +356,7 @@ export async function initTransactionsPage() {
 
     transferForm.reset();
     document.getElementById("transferDate").value = getTodayDateString();
+    closeModal(transferModal);
     showToast("Transfer gespeichert.");
     await refreshData();
   });

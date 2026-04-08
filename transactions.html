@@ -42,87 +42,16 @@
           <h2 class="font-display text-2xl font-semibold">Ausgabe, Einnahme oder Transfer buchen</h2>
         </header>
 
-        <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <article class="card p-4 space-y-3">
-            <h3 class="font-display text-lg font-semibold">+ Ausgabe</h3>
-            <form id="expenseForm" class="space-y-2">
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Datum</span>
-                <input id="expenseDate" type="date" class="form-input" required />
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Betrag</span>
-                <input id="expenseAmount" type="number" step="0.01" inputmode="decimal" class="form-input" required />
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Kategorie</span>
-                <select id="expenseCategory" class="form-select" required></select>
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Konto</span>
-                <select id="expenseAccount" class="form-select" required></select>
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Notiz</span>
-                <input id="expenseNote" class="form-input" placeholder="Optional" />
-              </label>
-              <button class="btn btn-primary w-full" type="submit">Ausgabe speichern</button>
-            </form>
-          </article>
-
-          <article class="card p-4 space-y-3">
-            <h3 class="font-display text-lg font-semibold">+ Einnahme</h3>
-            <form id="incomeForm" class="space-y-2">
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Datum</span>
-                <input id="incomeDate" type="date" class="form-input" required />
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Betrag</span>
-                <input id="incomeAmount" type="number" step="0.01" inputmode="decimal" class="form-input" required />
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Konto</span>
-                <select id="incomeAccount" class="form-select" required></select>
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Kategorie (optional)</span>
-                <select id="incomeCategory" class="form-select"></select>
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Notiz</span>
-                <input id="incomeNote" class="form-input" placeholder="Optional" />
-              </label>
-              <button class="btn btn-primary w-full" type="submit">Einnahme speichern</button>
-            </form>
-          </article>
-
-          <article class="card p-4 space-y-3">
-            <h3 class="font-display text-lg font-semibold">+ Transfer</h3>
-            <form id="transferForm" class="space-y-2">
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Datum</span>
-                <input id="transferDate" type="date" class="form-input" required />
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Von Konto</span>
-                <select id="transferFromAccount" class="form-select" required></select>
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Auf Konto</span>
-                <select id="transferToAccount" class="form-select" required></select>
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Betrag</span>
-                <input id="transferAmount" type="number" step="0.01" inputmode="decimal" class="form-input" required />
-              </label>
-              <label class="space-y-1 block">
-                <span class="text-sm font-semibold">Notiz</span>
-                <input id="transferNote" class="form-input" placeholder="Optional" />
-              </label>
-              <button class="btn btn-primary w-full" type="submit">Transfer speichern</button>
-            </form>
-          </article>
+        <section class="card p-5">
+          <header class="mb-3">
+            <h3 class="font-display text-lg font-semibold">Neue Buchung</h3>
+            <p class="text-sm text-slate-500">Wähle aus, was du eintragen möchtest.</p>
+          </header>
+          <div class="action-buttons">
+            <button id="openExpenseModalBtn" type="button" class="btn btn-primary">+ Ausgabe</button>
+            <button id="openIncomeModalBtn" type="button" class="btn btn-primary">+ Einnahme</button>
+            <button id="openTransferModalBtn" type="button" class="btn btn-primary">+ Transfer</button>
+          </div>
         </section>
 
         <section class="card p-5 space-y-4">
@@ -154,6 +83,123 @@
             </table>
           </div>
         </section>
+
+        <div id="expenseModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="expenseModalTitle" class="font-display text-lg font-semibold">+ Ausgabe</h3>
+              <button id="closeExpenseModalBtn" type="button" class="modal-close-btn" aria-label="Schließen">×</button>
+            </header>
+            <form id="expenseForm" class="space-y-2">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Datum</span>
+                <input id="expenseDate" type="date" class="form-input" required />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Betrag</span>
+                <input
+                  id="expenseAmount"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-input"
+                  required
+                  placeholder="z.B. 25k = 25 000"
+                />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Kategorie</span>
+                <select id="expenseCategory" class="form-select"></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Konto</span>
+                <select id="expenseAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Notiz</span>
+                <input id="expenseNote" class="form-input" placeholder="Optional" />
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Ausgabe speichern</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="incomeModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="incomeModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="incomeModalTitle" class="font-display text-lg font-semibold">+ Einnahme</h3>
+              <button id="closeIncomeModalBtn" type="button" class="modal-close-btn" aria-label="Schließen">×</button>
+            </header>
+            <form id="incomeForm" class="space-y-2">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Datum</span>
+                <input id="incomeDate" type="date" class="form-input" required />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Betrag</span>
+                <input
+                  id="incomeAmount"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-input"
+                  required
+                  placeholder="z.B. 25k = 25 000"
+                />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Konto</span>
+                <select id="incomeAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Kategorie (optional)</span>
+                <select id="incomeCategory" class="form-select"></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Notiz</span>
+                <input id="incomeNote" class="form-input" placeholder="Optional" />
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Einnahme speichern</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="transferModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="transferModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="transferModalTitle" class="font-display text-lg font-semibold">+ Transfer</h3>
+              <button id="closeTransferModalBtn" type="button" class="modal-close-btn" aria-label="Schließen">×</button>
+            </header>
+            <form id="transferForm" class="space-y-2">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Datum</span>
+                <input id="transferDate" type="date" class="form-input" required />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Von Konto</span>
+                <select id="transferFromAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Auf Konto</span>
+                <select id="transferToAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Betrag</span>
+                <input
+                  id="transferAmount"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-input"
+                  required
+                  placeholder="z.B. 25k = 25 000"
+                />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Notiz</span>
+                <input id="transferNote" class="form-input" placeholder="Optional" />
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Transfer speichern</button>
+            </form>
+          </div>
+        </div>
       </main>
     </div>
 

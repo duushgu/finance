@@ -7,9 +7,10 @@ export async function initCategoriesPage() {
   registerPwaWorker();
 
   const categoryForm = document.getElementById("categoryForm");
-  const parentSelect = document.getElementById("categoryParent");
   const categoriesTableBody = document.getElementById("categoriesTableBody");
-  const installFamilyCategoriesBtn = document.getElementById("installFamilyCategories");
+  const categoryModal = document.getElementById("categoryModal");
+  const openCategoryModalBtn = document.getElementById("openCategoryModalBtn");
+  const closeCategoryModalBtn = document.getElementById("closeCategoryModalBtn");
 
   let categories = [];
   const familyDefaults = [
@@ -26,24 +27,21 @@ export async function initCategoriesPage() {
     { name: "Lohn", type: "income" }
   ];
 
-  function renderParentOptions() {
-    const options = ['<option value="">Keine Oberkategorie</option>'];
+  function openCategoryModal() {
+    categoryModal.classList.remove("hidden");
+    document.getElementById("categoryName").focus();
+  }
 
-    categories.forEach((category) => {
-      options.push(`<option value="${category.id}">${category.name}</option>`);
-    });
-
-    parentSelect.innerHTML = options.join("");
+  function closeCategoryModal() {
+    categoryModal.classList.add("hidden");
   }
 
   function renderCategoryTable() {
     if (!categories.length) {
       categoriesTableBody.innerHTML =
-        '<tr><td colspan="3"><div class="empty-state">Noch keine Kategorien vorhanden.</div></td></tr>';
+        '<tr><td colspan="2"><div class="empty-state">Noch keine Kategorien vorhanden.</div></td></tr>';
       return;
     }
-
-    const categoryMap = Object.fromEntries(categories.map((item) => [item.id, item.name]));
 
     categoriesTableBody.innerHTML = categories
       .map((category) => {
@@ -51,7 +49,6 @@ export async function initCategoriesPage() {
           <tr>
             <td>${category.name}</td>
             <td class="capitalize">${category.type === "expense" ? "Ausgabe" : category.type === "income" ? "Einnahme" : "Beides"}</td>
-            <td>${categoryMap[category.parent_id] || "-"}</td>
           </tr>
         `;
       })
@@ -60,46 +57,62 @@ export async function initCategoriesPage() {
 
   async function refreshCategories() {
     categories = await getCategories(user.uid);
-    renderParentOptions();
     renderCategoryTable();
   }
+
+  async function ensureInitialCategories() {
+    if (categories.length) {
+      return;
+    }
+
+    for (const item of familyDefaults) {
+      await createCategory(user.uid, {
+        name: item.name,
+        type: item.type,
+        parent_id: ""
+      });
+    }
+
+    categories = await getCategories(user.uid);
+    showToast("Standard-Kategorien wurden automatisch angelegt.");
+  }
+
+  openCategoryModalBtn.addEventListener("click", openCategoryModal);
+  closeCategoryModalBtn.addEventListener("click", closeCategoryModal);
+
+  categoryModal.addEventListener("click", (event) => {
+    if (event.target === categoryModal) {
+      closeCategoryModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !categoryModal.classList.contains("hidden")) {
+      closeCategoryModal();
+    }
+  });
 
   categoryForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const name = document.getElementById("categoryName").value.trim();
     const type = document.getElementById("categoryType").value;
-    const parent_id = parentSelect.value;
 
     if (!name) {
       showToast("Bitte Name eingeben.");
       return;
     }
 
-    await createCategory(user.uid, { name, type, parent_id });
+    await createCategory(user.uid, { name, type, parent_id: "" });
 
     categoryForm.reset();
     document.getElementById("categoryType").value = "expense";
+    closeCategoryModal();
     showToast("Kategorie gespeichert.");
     await refreshCategories();
   });
 
-  installFamilyCategoriesBtn.addEventListener("click", async () => {
-    const existingNames = new Set(categories.map((item) => item.name.toLowerCase()));
-    const missing = familyDefaults.filter((item) => !existingNames.has(item.name.toLowerCase()));
-
-    if (!missing.length) {
-      showToast("Standard-Kategorien sind schon vorhanden.");
-      return;
-    }
-
-    for (const item of missing) {
-      await createCategory(user.uid, { name: item.name, type: item.type, parent_id: "" });
-    }
-
-    showToast(`${missing.length} Standard-Kategorien angelegt.`);
-    await refreshCategories();
-  });
-
   await refreshCategories();
+  await ensureInitialCategories();
+  renderCategoryTable();
 }
