@@ -28,13 +28,6 @@ function getWeekRange() {
   return { start, end };
 }
 
-const QUICK_TEMPLATES = {
-  food: { label: "Lebensmittel", keywords: ["lebensmittel", "food"], note: "Wocheneinkauf" },
-  kids: { label: "Kinder", keywords: ["kinder", "kind", "schule"], note: "Kinder" },
-  fuel: { label: "Sprit/Auto", keywords: ["sprit", "transport", "auto"], note: "Sprit" },
-  work: { label: "Arbeit/Werkzeug", keywords: ["arbeit", "werkzeug"], note: "Arbeit" }
-};
-
 function renderTypeChip(type) {
   if (type === "expense") {
     return '<span class="type-chip type-expense">Ausgabe</span>';
@@ -58,7 +51,6 @@ export async function initTransactionsPage() {
   const expenseForm = document.getElementById("expenseForm");
   const incomeForm = document.getElementById("incomeForm");
   const transferForm = document.getElementById("transferForm");
-  const quickButtons = document.querySelectorAll(".quick-template-btn");
   const filterThisWeek = document.getElementById("filterThisWeek");
   const filterThisMonth = document.getElementById("filterThisMonth");
 
@@ -172,42 +164,6 @@ export async function initTransactionsPage() {
     renderTransactionTable();
   }
 
-  function applyQuickTemplate(key) {
-    const template = QUICK_TEMPLATES[key];
-    if (!template) {
-      return;
-    }
-
-    const expenseCategory = document.getElementById("expenseCategory");
-    const expenseAccount = document.getElementById("expenseAccount");
-    const expenseNote = document.getElementById("expenseNote");
-    const expenseAmount = document.getElementById("expenseAmount");
-
-    const match = categories.find((category) => {
-      const name = (category.name || "").toLowerCase();
-      return template.keywords.some((keyword) => name.includes(keyword));
-    });
-
-    if (match) {
-      expenseCategory.value = match.id;
-    }
-
-    if (accounts[0]) {
-      expenseAccount.value = accounts[0].id;
-    }
-
-    expenseNote.value = template.note;
-    expenseAmount.focus();
-    showToast(`Schnellbuchung: ${template.label}`);
-  }
-
-  function applyQuickTemplateFromUrl() {
-    const quick = new URLSearchParams(window.location.search).get("quick");
-    if (quick && QUICK_TEMPLATES[quick]) {
-      applyQuickTemplate(quick);
-    }
-  }
-
   expenseForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -275,12 +231,6 @@ export async function initTransactionsPage() {
     renderTransactionTable();
   });
 
-  quickButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      applyQuickTemplate(button.dataset.template);
-    });
-  });
-
   filterThisWeek.addEventListener("click", () => {
     listMode = "week";
     renderTransactionTable();
@@ -293,5 +243,4 @@ export async function initTransactionsPage() {
 
   setDefaultDates();
   await refreshData();
-  applyQuickTemplateFromUrl();
 }
