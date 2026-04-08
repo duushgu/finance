@@ -22,14 +22,12 @@ export const APP_CURRENCY_CODE = "MNT";
 export const APP_CURRENCY_SYMBOL = "₮";
 export const STARTER_CATEGORIES = [
   { key: "misc", name: "Бусад", type: "expense" },
-  { key: "housing", name: "Түрээс/Орон сууц", type: "expense" },
   { key: "utilities", name: "Цахилгаан/Интернэт/Даатгал", type: "expense" },
   { key: "food", name: "Хүнс", type: "expense" },
   { key: "kids", name: "Хүүхэд", type: "expense" },
   { key: "transport", name: "Тээвэр/Түлш", type: "expense" },
   { key: "work", name: "Ажил/Багаж", type: "expense" },
   { key: "health", name: "Эрүүл мэнд", type: "expense" },
-  { key: "wedding", name: "Хурим", type: "expense" },
   { key: "savings", name: "Хадгаламж", type: "expense" },
   { key: "salary", name: "Цалин", type: "income" }
 ];
@@ -115,6 +113,7 @@ export async function getCategories(userId) {
 export async function ensureStarterCategories(userId) {
   const existing = await getCategories(userId);
   if (existing.length) {
+    const starterDocIdSet = new Set(STARTER_CATEGORIES.map((item) => `${userId}_starter_${item.key}`));
     const existingById = Object.fromEntries(existing.map((item) => [item.id, item]));
     const updates = STARTER_CATEGORIES.filter((item) => {
       const docId = `${userId}_starter_${item.key}`;
@@ -130,20 +129,25 @@ export async function ensureStarterCategories(userId) {
       );
     });
 
-    if (!updates.length) {
+    const removals = existing
+      .filter((item) => item.id.startsWith(`${userId}_starter_`) && !starterDocIdSet.has(item.id))
+      .map((item) => item.id);
+
+    if (!updates.length && !removals.length) {
       return { categories: existing, seeded: false, migrated: false };
     }
 
-    await Promise.all(
-      updates.map((item) =>
-        updateDoc(doc(db, "categories", `${userId}_starter_${item.key}`), {
-          name: item.name,
-          type: item.type,
-          parent_id: null,
-          updated_at: serverTimestamp()
-        })
-      )
+    const updateCalls = updates.map((item) =>
+      updateDoc(doc(db, "categories", `${userId}_starter_${item.key}`), {
+        name: item.name,
+        type: item.type,
+        parent_id: null,
+        updated_at: serverTimestamp()
+      })
     );
+    const removeCalls = removals.map((id) => deleteDoc(doc(db, "categories", id)));
+
+    await Promise.all([...updateCalls, ...removeCalls]);
 
     const migratedCategories = await getCategories(userId);
     return { categories: migratedCategories, seeded: false, migrated: true };
