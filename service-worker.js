@@ -1,4 +1,4 @@
-const CACHE_NAME = "finance-tracker-v1";
+const CACHE_NAME = "finance-tracker-v2";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -54,6 +54,31 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  const requestPath = url.pathname;
+  const shouldPreferNetwork =
+    requestPath.endsWith(".html") ||
+    requestPath.endsWith(".js") ||
+    requestPath.endsWith(".css") ||
+    requestPath === "/" ||
+    requestPath.endsWith("/finance-tracker/");
+
+  if (shouldPreferNetwork) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
+    );
     return;
   }
 

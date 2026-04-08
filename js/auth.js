@@ -68,6 +68,7 @@ export async function setupLoginPage() {
 
   const statusEl = document.getElementById("loginStatus");
   const loginBtn = document.getElementById("googleLoginBtn");
+  const setupChecklist = document.getElementById("setupChecklist");
 
   if (!loginBtn) {
     return;
@@ -76,6 +77,13 @@ export async function setupLoginPage() {
   if (!isFirebaseConfigured) {
     statusEl.textContent = "Firebase config placeholders are still set. Update js/firebase.js first.";
     statusEl.className = "text-sm text-amber-700 text-center";
+    if (setupChecklist) {
+      setupChecklist.open = true;
+    }
+  } else if (setupChecklist) {
+    setupChecklist.classList.add("hidden");
+    statusEl.textContent = "Firebase setup detected. You can sign in now.";
+    statusEl.className = "text-sm text-emerald-700 text-center";
   }
 
   loginBtn.addEventListener("click", async () => {
@@ -105,9 +113,13 @@ export async function requireAuthPage() {
   await ensurePersistence();
 
   return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        await syncUserDocument(user);
+        try {
+          await syncUserDocument(user);
+        } catch (error) {
+          console.warn("User profile sync skipped:", error);
+        }
         unsubscribe();
         resolve(user);
         return;
