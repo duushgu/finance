@@ -16,7 +16,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--sea-900);
-  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-family: "Noto Sans", "Segoe UI", "Arial", sans-serif;
   background:
     radial-gradient(circle at top right, #fef4df 0%, rgba(254, 244, 223, 0) 42%),
     radial-gradient(circle at 10% 15%, #daf5e9 0%, rgba(218, 245, 233, 0) 40%),
@@ -27,7 +27,7 @@ h1,
 h2,
 h3,
 .font-display {
-  font-family: "Sora", "Segoe UI", sans-serif;
+  font-family: "Noto Sans Display", "Noto Sans", "Segoe UI", "Arial", sans-serif;
 }
 
 a {
@@ -51,7 +51,7 @@ a {
 }
 
 .stat-value {
-  font-family: "Sora", "Segoe UI", sans-serif;
+  font-family: "Noto Sans Display", "Noto Sans", "Segoe UI", "Arial", sans-serif;
   font-size: 1.9rem;
   line-height: 1.1;
   font-weight: 700;
@@ -280,7 +280,7 @@ a {
   border: none;
   background: linear-gradient(120deg, #0f8f67 0%, #0a7351 100%);
   color: #ffffff;
-  font-family: "Sora", "Segoe UI", sans-serif;
+  font-family: "Noto Sans Display", "Noto Sans", "Segoe UI", "Arial", sans-serif;
   font-size: 1.7rem;
   line-height: 1;
   box-shadow: 0 12px 24px rgba(15, 143, 103, 0.3);
