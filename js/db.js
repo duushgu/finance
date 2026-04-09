@@ -208,6 +208,39 @@ export async function markBeginnerGuideSeen(userId) {
   );
 }
 
+export async function getUserOnboardingFlags(userId) {
+  const userRef = doc(db, "users", userId);
+  const snapshot = await getDoc(userRef);
+  if (!snapshot.exists()) {
+    return {};
+  }
+
+  return snapshot.data()?.onboarding_flags || {};
+}
+
+export async function markUserOnboardingFlag(userId, flagKey) {
+  const userRef = doc(db, "users", userId);
+  try {
+    await updateDoc(userRef, {
+      [`onboarding_flags.${flagKey}`]: true,
+      updated_at: serverTimestamp()
+    });
+    return;
+  } catch (error) {
+    await setDoc(
+      userRef,
+      {
+        user_id: userId,
+        onboarding_flags: {
+          [flagKey]: true
+        },
+        updated_at: serverTimestamp()
+      },
+      { merge: true }
+    );
+  }
+}
+
 export async function createTransaction(userId, payload) {
   const transactionType = payload.type;
   const amount = Math.abs(toNumber(payload.amount || payload.transfer_amount));

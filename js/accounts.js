@@ -5,6 +5,8 @@ import {
   deleteAccount,
   formatCurrency,
   getAccounts,
+  getUserOnboardingFlags,
+  markUserOnboardingFlag,
   getTransactions,
   updateAccount
 } from "./db.js";
@@ -55,6 +57,8 @@ export async function initAccountsPage() {
   const openAccountModalBtn = document.getElementById("openAccountModalBtn");
   const closeAccountModalBtn = document.getElementById("closeAccountModalBtn");
   const toggleDeleteAccountModeBtn = document.getElementById("toggleDeleteAccountModeBtn");
+  const accountAutoBalanceHint = document.getElementById("accountAutoBalanceHint");
+  const dismissAccountAutoBalanceHintBtn = document.getElementById("dismissAccountAutoBalanceHintBtn");
 
   let accountsWithBalance = [];
   let isInlineSaving = false;
@@ -126,6 +130,39 @@ export async function initAccountsPage() {
     }
     updateDeleteButtonUi();
     applyDeleteModeStateToTable();
+  }
+
+  async function setupAccountHint() {
+    if (!accountAutoBalanceHint || !dismissAccountAutoBalanceHintBtn) {
+      return;
+    }
+
+    let onboardingFlags = {};
+    try {
+      onboardingFlags = await getUserOnboardingFlags(user.uid);
+    } catch (error) {
+      onboardingFlags = {};
+    }
+
+    const flagKey = "account_auto_balance_hint_seen";
+    if (onboardingFlags[flagKey]) {
+      accountAutoBalanceHint.classList.add("hidden");
+      return;
+    }
+
+    accountAutoBalanceHint.classList.remove("hidden");
+    dismissAccountAutoBalanceHintBtn.addEventListener(
+      "click",
+      async () => {
+        accountAutoBalanceHint.classList.add("hidden");
+        try {
+          await markUserOnboardingFlag(user.uid, flagKey);
+        } catch (error) {
+          // Ignore persistence failures so UI stays responsive.
+        }
+      },
+      { once: true }
+    );
   }
 
   async function renderAccounts() {
@@ -367,6 +404,7 @@ export async function initAccountsPage() {
     await renderAccounts();
   });
 
+  await setupAccountHint();
   await renderAccounts();
   updateDeleteButtonUi();
 }

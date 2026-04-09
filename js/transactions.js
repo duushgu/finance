@@ -9,6 +9,8 @@ import {
   getMonthKey,
   getTodayDateString,
   getTransactions,
+  getUserOnboardingFlags,
+  markUserOnboardingFlag,
   updateTransaction
 } from "./db.js";
 
@@ -184,6 +186,10 @@ export async function initTransactionsPage() {
   const closeExpenseModalBtn = document.getElementById("closeExpenseModalBtn");
   const closeIncomeModalBtn = document.getElementById("closeIncomeModalBtn");
   const closeTransferModalBtn = document.getElementById("closeTransferModalBtn");
+  const newTransactionHint = document.getElementById("newTransactionHint");
+  const dismissNewTransactionHintBtn = document.getElementById("dismissNewTransactionHintBtn");
+  const transactionsListHint = document.getElementById("transactionsListHint");
+  const dismissTransactionsListHintBtn = document.getElementById("dismissTransactionsListHintBtn");
 
   let accounts = [];
   let categories = [];
@@ -405,6 +411,53 @@ export async function initTransactionsPage() {
     }
     updateDeleteButtonUi();
     applyDeleteModeStateToTable();
+  }
+
+  async function setupDismissibleHint(hintEl, dismissBtn, onboardingFlags, flagKey) {
+    if (!hintEl || !dismissBtn) {
+      return;
+    }
+
+    if (onboardingFlags[flagKey]) {
+      hintEl.classList.add("hidden");
+      return;
+    }
+
+    hintEl.classList.remove("hidden");
+    dismissBtn.addEventListener(
+      "click",
+      async () => {
+        hintEl.classList.add("hidden");
+        try {
+          await markUserOnboardingFlag(user.uid, flagKey);
+        } catch (error) {
+          // Ignore persistence failures so UI stays responsive.
+        }
+      },
+      { once: true }
+    );
+  }
+
+  async function setupSectionHints() {
+    let onboardingFlags = {};
+    try {
+      onboardingFlags = await getUserOnboardingFlags(user.uid);
+    } catch (error) {
+      onboardingFlags = {};
+    }
+
+    await setupDismissibleHint(
+      newTransactionHint,
+      dismissNewTransactionHintBtn,
+      onboardingFlags,
+      "transactions_new_entry_hint_seen"
+    );
+    await setupDismissibleHint(
+      transactionsListHint,
+      dismissTransactionsListHintBtn,
+      onboardingFlags,
+      "transactions_list_hint_seen"
+    );
   }
 
   function renderTransactionTable() {
@@ -902,6 +955,7 @@ export async function initTransactionsPage() {
   });
 
   setDefaultDates();
+  await setupSectionHints();
   await refreshData();
   openQuickExpenseModalIfRequested();
   updateDeleteButtonUi();

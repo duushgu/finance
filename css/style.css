@@ -103,6 +103,12 @@ a {
   opacity: 0.92;
 }
 
+.hint-dismiss-btn {
+  padding: 0.34rem 0.7rem;
+  font-size: 0.76rem;
+  border-radius: 0.66rem;
+}
+
 .btn-neutral {
   background: #ecf8f2;
   color: var(--sea-700);
