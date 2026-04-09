@@ -338,7 +338,7 @@ export async function initDashboard() {
   const monthKey = getMonthKey();
   const summary = getMonthlySummary(transactions, monthKey);
   const expensesByCategory = groupExpensesByCategory(transactions, categories, monthKey);
-  const recentTransactions = getRecentTransactions(transactions, 8);
+  const recentTransactions = getRecentTransactions(transactions, 5);
 
   configureQuickExpenseButtons(categories, user.uid);
   renderAccountBalances(accountsWithBalances);
