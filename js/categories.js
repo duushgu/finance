@@ -1,5 +1,13 @@
 import { bindAuthUi, registerPwaWorker, requireAuthPage, showToast } from "./auth.js";
-import { createCategory, deleteCategory, ensureStarterCategories, getCategories, updateCategory } from "./db.js";
+import {
+  createCategory,
+  deleteCategory,
+  ensureStarterCategories,
+  getCategories,
+  getUserOnboardingFlags,
+  markUserOnboardingFlag,
+  updateCategory
+} from "./db.js";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -50,6 +58,8 @@ export async function initCategoriesPage() {
   const openCategoryModalBtn = document.getElementById("openCategoryModalBtn");
   const closeCategoryModalBtn = document.getElementById("closeCategoryModalBtn");
   const toggleDeleteCategoryModeBtn = document.getElementById("toggleDeleteCategoryModeBtn");
+  const categoriesEditHint = document.getElementById("categoriesEditHint");
+  const dismissCategoriesEditHintBtn = document.getElementById("dismissCategoriesEditHintBtn");
 
   let categories = [];
   let isInlineSaving = false;
@@ -121,6 +131,39 @@ export async function initCategoriesPage() {
     }
     updateDeleteButtonUi();
     applyDeleteModeStateToTable();
+  }
+
+  async function setupCategoriesHint() {
+    if (!categoriesEditHint || !dismissCategoriesEditHintBtn) {
+      return;
+    }
+
+    let onboardingFlags = {};
+    try {
+      onboardingFlags = await getUserOnboardingFlags(user.uid);
+    } catch (error) {
+      onboardingFlags = {};
+    }
+
+    const flagKey = "categories_editable_cells_hint_seen";
+    if (onboardingFlags[flagKey]) {
+      categoriesEditHint.classList.add("hidden");
+      return;
+    }
+
+    categoriesEditHint.classList.remove("hidden");
+    dismissCategoriesEditHintBtn.addEventListener(
+      "click",
+      async () => {
+        categoriesEditHint.classList.add("hidden");
+        try {
+          await markUserOnboardingFlag(user.uid, flagKey);
+        } catch (error) {
+          // Ignore persistence failures so UI stays responsive.
+        }
+      },
+      { once: true }
+    );
   }
 
   function renderCategoryTable() {
@@ -271,7 +314,7 @@ export async function initCategoriesPage() {
       }
     } catch (error) {
       cell.textContent = cell.dataset.originalValue || "";
-      showToast(error.message || "Aktualisierung fehlgeschlagen.");
+      showToast(error.message || "Шинэчилж чадсангүй.");
     } finally {
       isInlineSaving = false;
     }
@@ -358,6 +401,7 @@ export async function initCategoriesPage() {
     await refreshCategories();
   });
 
+  await setupCategoriesHint();
   await refreshCategories();
   await ensureInitialCategories();
   renderCategoryTable();
