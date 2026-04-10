@@ -179,15 +179,10 @@ export async function initTransactionsPage() {
   const expenseModal = document.getElementById("expenseModal");
   const incomeModal = document.getElementById("incomeModal");
   const transferModal = document.getElementById("transferModal");
-  const openExpenseModalBtn = document.getElementById("openExpenseModalBtn");
-  const openIncomeModalBtn = document.getElementById("openIncomeModalBtn");
-  const openTransferModalBtn = document.getElementById("openTransferModalBtn");
   const toggleDeleteTransactionModeBtn = document.getElementById("toggleDeleteTransactionModeBtn");
   const closeExpenseModalBtn = document.getElementById("closeExpenseModalBtn");
   const closeIncomeModalBtn = document.getElementById("closeIncomeModalBtn");
   const closeTransferModalBtn = document.getElementById("closeTransferModalBtn");
-  const newTransactionHint = document.getElementById("newTransactionHint");
-  const dismissNewTransactionHintBtn = document.getElementById("dismissNewTransactionHintBtn");
   const transactionsListHint = document.getElementById("transactionsListHint");
   const dismissTransactionsListHintBtn = document.getElementById("dismissTransactionsListHintBtn");
 
@@ -285,11 +280,11 @@ export async function initTransactionsPage() {
     categories = await getCategories(user.uid);
   }
 
-  function clearQuickExpenseParams() {
+  function clearOpenParams() {
     const url = new URL(window.location.href);
     let changed = false;
 
-    ["expenseCategoryId", "quick"].forEach((param) => {
+    ["expenseCategoryId", "quick", "open"].forEach((param) => {
       if (url.searchParams.has(param)) {
         url.searchParams.delete(param);
         changed = true;
@@ -321,23 +316,33 @@ export async function initTransactionsPage() {
     return expenseCategories.find((item) => aliasSet.has(normalizeQuickLookup(item.name))) || null;
   }
 
-  function resolveQuickExpenseRequest() {
+  function resolveInitialModalRequest() {
     const params = new URLSearchParams(window.location.search);
+    const openType = String(params.get("open") || "")
+      .trim()
+      .toLowerCase();
     const explicitCategoryId = String(params.get("expenseCategoryId") || "").trim();
     const quickKey = String(params.get("quick") || "")
       .trim()
       .toLowerCase();
 
-    const hasQuickRequest = Boolean(explicitCategoryId || quickKey);
-    if (!hasQuickRequest) {
-      return { shouldOpen: false, categoryId: "" };
+    if (openType === "income") {
+      return { shouldOpen: true, modal: "income", categoryId: "" };
+    }
+    if (openType === "transfer") {
+      return { shouldOpen: true, modal: "transfer", categoryId: "" };
+    }
+
+    const hasExpenseRequest = openType === "expense" || explicitCategoryId || quickKey;
+    if (!hasExpenseRequest) {
+      return { shouldOpen: false, modal: "", categoryId: "" };
     }
 
     const expenseCategories = categories.filter((item) => isExpenseCategory(item));
     if (explicitCategoryId) {
       const fromId = expenseCategories.find((item) => item.id === explicitCategoryId);
       if (fromId) {
-        return { shouldOpen: true, categoryId: fromId.id };
+        return { shouldOpen: true, modal: "expense", categoryId: fromId.id };
       }
     }
 
@@ -347,23 +352,35 @@ export async function initTransactionsPage() {
         const mapping = readQuickCategoryMapping(user.uid);
         mapping[quickKey] = matchedCategory.id;
         writeQuickCategoryMapping(user.uid, mapping);
-        return { shouldOpen: true, categoryId: matchedCategory.id };
+        return { shouldOpen: true, modal: "expense", categoryId: matchedCategory.id };
       }
     }
 
-    return { shouldOpen: true, categoryId: "" };
+    return { shouldOpen: true, modal: "expense", categoryId: "" };
   }
 
-  function openQuickExpenseModalIfRequested() {
-    const request = resolveQuickExpenseRequest();
+  function openInitialModalIfRequested() {
+    const request = resolveInitialModalRequest();
     if (!request.shouldOpen) {
+      return;
+    }
+
+    if (request.modal === "income") {
+      openModal(incomeModal, "incomeAmount");
+      clearOpenParams();
+      return;
+    }
+
+    if (request.modal === "transfer") {
+      openModal(transferModal, "transferAmount");
+      clearOpenParams();
       return;
     }
 
     const expenseCategorySelect = document.getElementById("expenseCategory");
     expenseCategorySelect.value = request.categoryId || defaultExpenseCategoryId || expenseCategorySelect.value;
     openModal(expenseModal, "expenseAmount");
-    clearQuickExpenseParams();
+    clearOpenParams();
   }
 
   function applyDeleteModeStateToTable() {
@@ -446,12 +463,6 @@ export async function initTransactionsPage() {
       onboardingFlags = {};
     }
 
-    await setupDismissibleHint(
-      newTransactionHint,
-      dismissNewTransactionHintBtn,
-      onboardingFlags,
-      "transactions_new_entry_hint_seen"
-    );
     await setupDismissibleHint(
       transactionsListHint,
       dismissTransactionsListHintBtn,
@@ -715,10 +726,6 @@ export async function initTransactionsPage() {
     return false;
   }
 
-  openExpenseModalBtn.addEventListener("click", () => openModal(expenseModal, "expenseAmount"));
-  openIncomeModalBtn.addEventListener("click", () => openModal(incomeModal, "incomeAmount"));
-  openTransferModalBtn.addEventListener("click", () => openModal(transferModal, "transferAmount"));
-
   closeExpenseModalBtn.addEventListener("click", () => closeModal(expenseModal));
   closeIncomeModalBtn.addEventListener("click", () => closeModal(incomeModal));
   closeTransferModalBtn.addEventListener("click", () => closeModal(transferModal));
@@ -957,6 +964,6 @@ export async function initTransactionsPage() {
   setDefaultDates();
   await setupSectionHints();
   await refreshData();
-  openQuickExpenseModalIfRequested();
+  openInitialModalIfRequested();
   updateDeleteButtonUi();
 }
