@@ -1,4 +1,4 @@
-const CACHE_NAME = "finance-tracker-v8";
+const CACHE_NAME = "finance-tracker-v9";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -14,7 +14,6 @@ const STATIC_ASSETS = [
   "./js/dashboard.js",
   "./js/accounts.js",
   "./js/categories.js",
-  "./js/transactions.js",
   "./assets/icon.svg",
   "./assets/icon-maskable.svg"
 ];
@@ -62,7 +61,7 @@ self.addEventListener("fetch", (event) => {
     requestPath.endsWith(".js") ||
     requestPath.endsWith(".css") ||
     requestPath === "/" ||
-    requestPath.endsWith("/finance-tracker/");
+    requestPath.endsWith("/finance/") || requestPath.endsWith("/finance-tracker/");
 
   if (shouldPreferNetwork) {
     event.respondWith(

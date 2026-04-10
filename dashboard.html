@@ -27,7 +27,6 @@
           <nav class="space-y-2">
             <a class="sidebar-link active" href="./dashboard.html">Тойм</a>
             <a class="sidebar-link" href="./accounts.html">Данс</a>
-            <a class="sidebar-link" href="./transactions.html">Гүйлгээ</a>
             <a class="sidebar-link" href="./categories.html">Ангилал</a>
           </nav>
           <div class="mt-auto space-y-3">
@@ -43,9 +42,9 @@
             <h2 class="font-display text-2xl font-semibold">Энгийн гэр бүлийн тойм</h2>
           </div>
           <div class="flex flex-wrap gap-2">
-            <a href="./transactions.html?open=expense" class="btn btn-expense">+ Зарлага</a>
-            <a href="./transactions.html?open=income" class="btn btn-income">+ Орлого</a>
-            <a href="./transactions.html?open=transfer" class="btn btn-transfer">+ Шилжүүлэг</a>
+            <button id="dashboardOpenExpenseModalBtn" type="button" class="btn btn-expense">+ Зарлага</button>
+            <button id="dashboardOpenIncomeModalBtn" type="button" class="btn btn-income">+ Орлого</button>
+            <button id="dashboardOpenTransferModalBtn" type="button" class="btn btn-transfer">+ Шилжүүлэг</button>
           </div>
         </header>
 
@@ -57,7 +56,7 @@
               <p class="text-sm text-slate-600">Аппаа 1 минутанд эхлүүлэх энгийн дараалал:</p>
               <p class="text-sm text-slate-700">1) Данс хэсэгт дансаа нэмнэ.</p>
               <p class="text-sm text-slate-700">2) Ангилал хэсгээ шалгаад хүсвэл нэрийг засна.</p>
-              <p class="text-sm text-slate-700">3) Гүйлгээ хэсэгт зарлага, орлого, шилжүүлгээ бүртгэнэ.</p>
+              <p class="text-sm text-slate-700">3) Тойм дээрээс зарлага, орлого, шилжүүлгээ бүртгэнэ.</p>
             </div>
             <button id="dismissBeginnerGuideBtn" type="button" class="btn btn-neutral">Ойлголоо</button>
           </div>
@@ -112,9 +111,17 @@
 
         <section class="card p-5">
           <header class="mb-3 flex items-center justify-between gap-2">
-            <h3 class="font-display text-lg font-semibold">Сүүлийн гүйлгээ</h3>
-            <a class="text-sm font-semibold text-emerald-700" href="./transactions.html">Бүгдийг харах</a>
+            <h3 class="font-display text-lg font-semibold">Гүйлгээний жагсаалт</h3>
+            <button id="showDetailedTransactionsBtn" type="button" class="btn btn-neutral">Дэлгэрэнгүй</button>
           </header>
+          <div id="dashboardTransactionsControls" class="mb-3 hidden flex flex-wrap items-center gap-2">
+            <input
+              id="dashboardTransactionsMonthFilter"
+              type="month"
+              class="form-input"
+              aria-label="Сарын гүйлгээ сонгох"
+            />
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
@@ -131,13 +138,108 @@
             </table>
           </div>
         </section>
+
+        <div id="expenseModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="expenseModalTitle" class="font-display text-lg font-semibold">+ Зарлага</h3>
+              <button id="closeExpenseModalBtn" type="button" class="modal-close-btn" aria-label="Хаах">×</button>
+            </header>
+            <form id="expenseForm" class="space-y-2">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Огноо</span>
+                <input id="expenseDate" type="date" class="form-input" required />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Дүн</span>
+                <input id="expenseAmount" type="text" inputmode="decimal" class="form-input" required placeholder="ж: 25k = 25 000" />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Ангилал</span>
+                <select id="expenseCategory" class="form-select"></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Данс</span>
+                <select id="expenseAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Тэмдэглэл</span>
+                <input id="expenseNote" class="form-input" placeholder="Сонголтот" />
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Зарлага хадгалах</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="incomeModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="incomeModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="incomeModalTitle" class="font-display text-lg font-semibold">+ Орлого</h3>
+              <button id="closeIncomeModalBtn" type="button" class="modal-close-btn" aria-label="Хаах">×</button>
+            </header>
+            <form id="incomeForm" class="space-y-2">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Огноо</span>
+                <input id="incomeDate" type="date" class="form-input" required />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Дүн</span>
+                <input id="incomeAmount" type="text" inputmode="decimal" class="form-input" required placeholder="ж: 25k = 25 000" />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Данс</span>
+                <select id="incomeAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Ангилал (сонголтот)</span>
+                <select id="incomeCategory" class="form-select"></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Тэмдэглэл</span>
+                <input id="incomeNote" class="form-input" placeholder="Сонголтот" />
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Орлого хадгалах</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="transferModal" class="app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="transferModalTitle">
+          <div class="app-modal-card">
+            <header class="flex items-center justify-between gap-3 mb-4">
+              <h3 id="transferModalTitle" class="font-display text-lg font-semibold">+ Шилжүүлэг</h3>
+              <button id="closeTransferModalBtn" type="button" class="modal-close-btn" aria-label="Хаах">×</button>
+            </header>
+            <form id="transferForm" class="space-y-2">
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Огноо</span>
+                <input id="transferDate" type="date" class="form-input" required />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Дансаас</span>
+                <select id="transferFromAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Данс руу</span>
+                <select id="transferToAccount" class="form-select" required></select>
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Дүн</span>
+                <input id="transferAmount" type="text" inputmode="decimal" class="form-input" required placeholder="ж: 25k = 25 000" />
+              </label>
+              <label class="space-y-1 block">
+                <span class="text-sm font-semibold">Тэмдэглэл</span>
+                <input id="transferNote" class="form-input" placeholder="Сонголтот" />
+              </label>
+              <button class="btn btn-primary w-full" type="submit">Шилжүүлэг хадгалах</button>
+            </form>
+          </div>
+        </div>
       </main>
     </div>
 
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-emerald-100 bg-white/95 backdrop-blur">
-      <div class="max-w-md mx-auto grid grid-cols-4 px-2 py-2 gap-1">
+      <div class="max-w-md mx-auto grid grid-cols-3 px-2 py-2 gap-1">
         <a href="./dashboard.html" class="mobile-link active">Тойм</a>
-        <a href="./transactions.html" class="mobile-link">Гүйлгээ</a>
         <a href="./accounts.html" class="mobile-link">Данс</a>
         <a href="./categories.html" class="mobile-link">Ангилал</a>
       </div>
